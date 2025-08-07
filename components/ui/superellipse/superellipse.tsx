@@ -161,7 +161,7 @@ const Superellipse = forwardRef(
       borderRadius: path ? undefined : cornerRadius,
       clipPath: path ? `path('${path}')` : undefined,
       WebkitClipPath: path ? `path('${path}')` : undefined,
-      // Disable any CSS transitions on clip-path to ensure instant corner radius changes
+      // No transitions - corner radius changes should be instant
       transition: 'none',
       WebkitTransition: 'none',
     };

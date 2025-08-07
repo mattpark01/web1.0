@@ -3,7 +3,7 @@
 import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1386,18 +1386,17 @@ export function GlobalHeader({ onToggleSidebar }: GlobalHeaderProps = {}) {
           setting.name.toLowerCase().includes(search.toLowerCase())),
       );
 
-  const shouldShowResults =
+  const shouldShowResults = useMemo(() => 
     (filteredItems.length > 0 ||
       filteredCommands.length > 0 ||
       filteredSettings.length > 0 ||
       isSlashCommand ||
       isBackslashCommand) &&
-    (showResults || isSlashCommand || isBackslashCommand);
+    (showResults || isSlashCommand || isBackslashCommand || dialogLevel > 0),
+    [filteredItems.length, filteredCommands.length, filteredSettings.length, isSlashCommand, isBackslashCommand, showResults, dialogLevel]
+  );
 
-  // Smooth spring animation for corner radius (SwiftUI-style)
-  const [cornerRadius, setCornerRadius] = useState(100); // Start with rounded corners
-  
-  // Animated width for smooth Superellipse transitions
+  // Simplified: Only manage width, let Superellipse auto-determine corner radius
   const animatedWidth = useMotionValue(320); // Start with compact width
   const animatedWidthSpring = useSpring(animatedWidth, {
     stiffness: 400,
@@ -1405,21 +1404,13 @@ export function GlobalHeader({ onToggleSidebar }: GlobalHeaderProps = {}) {
     mass: 0.5,
   });
   
-
-  // Update corner radius and width when state changes
+  // Update width when state changes
   useEffect(() => {
-    const searchLength = search ? search.length : 0;
+    const shouldExpand = dialogLevel > 0 || shouldShowResults;
+    const targetWidth = shouldExpand ? 512 : 320;
     
-    // Corner radius logic: 
-    // - Only change to 8 when list renders (shouldShowResults) or in hierarchical dialogs
-    // - Otherwise keep at 100 (full rounded)
-    const targetCornerRadius = (shouldShowResults || dialogLevel > 0) ? 8 : 100;
-    const targetWidth = (shouldShowResults || dialogLevel > 0) ? 512 : 320;
-    
-    
-    setCornerRadius(targetCornerRadius);
     animatedWidth.set(targetWidth);
-  }, [search, shouldShowResults, dialogLevel]);
+  }, [shouldShowResults, dialogLevel]);
 
   const topHit = isSlashCommand
     ? filteredCommands.length > 0
@@ -1753,7 +1744,7 @@ export function GlobalHeader({ onToggleSidebar }: GlobalHeaderProps = {}) {
           open={true}
           onOpenChange={handleOpenChange}
           className="overflow-hidden p-0 [&_[data-slot=command-input-wrapper]]:border-b-0"
-          cornerRadius={cornerRadius}
+          cornerRadius={(shouldShowResults || dialogLevel > 0) ? 8 : 100}
           animatedWidth={animatedWidthSpring}
           isCompact={!shouldShowResults && dialogLevel === 0}
           dialogWidth={
