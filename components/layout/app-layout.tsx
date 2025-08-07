@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { AppSidebar } from "./app-sidebar"
 import { GlobalHeader } from "./global-header"
 import { StatusBar } from "./status-bar"
@@ -10,30 +11,22 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
+  const [sidebarVisible, setSidebarVisible] = useState(true)
+
+  const toggleSidebar = () => {
+    setSidebarVisible(prev => !prev)
+  }
+
   return (
     <div className="flex h-screen w-full flex-col bg-background">
-      <GlobalHeader />
+      <GlobalHeader onToggleSidebar={toggleSidebar} />
       
       <div className="flex flex-1 overflow-hidden">
-        <AppSidebar />
+        {sidebarVisible && <AppSidebar />}
         
-        <ResizablePanelGroup direction="horizontal" className="flex-1">
-          <ResizablePanel defaultSize={75} minSize={30} className="flex flex-col">
-            <main className="flex-1 overflow-auto p-6">
-              {children}
-            </main>
-          </ResizablePanel>
-          
-          <ResizableHandle withHandle />
-          
-          <ResizablePanel defaultSize={25} minSize={20} maxSize={40} className="border-l">
-            <div className="h-full p-4">
-              <div className="text-sm text-muted-foreground">
-                Secondary Panel
-              </div>
-            </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
+        <main className="flex-1 overflow-auto p-6">
+          {children}
+        </main>
       </div>
       
       <StatusBar />

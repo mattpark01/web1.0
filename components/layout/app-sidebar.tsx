@@ -12,6 +12,11 @@ import {
   Terminal,
   Store,
   FolderOpen,
+  CheckSquare,
+  Table,
+  Code,
+  BookOpen,
+  Mail,
   Settings,
 } from "lucide-react"
 
@@ -53,6 +58,36 @@ const sidebarItems = [
     href: "/files",
   },
   {
+    id: "tasks",
+    label: "Tasks",
+    icon: CheckSquare,
+    href: "/tasks",
+  },
+  {
+    id: "sheets",
+    label: "Sheets",
+    icon: Table,
+    href: "/sheets",
+  },
+  {
+    id: "ide",
+    label: "IDE",
+    icon: Code,
+    href: "/ide",
+  },
+  {
+    id: "notes",
+    label: "Notes",
+    icon: BookOpen,
+    href: "/notes",
+  },
+  {
+    id: "mail",
+    label: "Mail",
+    icon: Mail,
+    href: "/mail",
+  },
+  {
     id: "settings",
     label: "Settings",
     icon: Settings,
@@ -67,7 +102,7 @@ export function AppSidebar() {
     <div className="flex h-full w-12 flex-col border-r bg-muted/30">
       <div className="flex flex-1 flex-col items-center gap-1 py-2">
         {sidebarItems.map((item) => {
-          const isActive = pathname.startsWith(item.href)
+          const isActive = pathname?.startsWith(item.href) || false
           const Icon = item.icon
 
           return (

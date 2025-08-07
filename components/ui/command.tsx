@@ -4,6 +4,7 @@ import * as React from "react";
 import { Command as CommandPrimitive } from "cmdk";
 import { SearchIcon } from "lucide-react";
 import { motion } from "framer-motion";
+import { Superellipse } from "@/components/ui/superellipse/superellipse";
 
 import { cn } from "@/lib/utils";
 import {
@@ -22,7 +23,7 @@ function Command({
     <CommandPrimitive
       data-slot="command"
       className={cn(
-        "bg-popover text-popover-foreground flex h-full w-full flex-col overflow-hidden rounded-md",
+        "bg-popover text-popover-foreground flex h-full w-full flex-col overflow-hidden",
         className,
       )}
       {...props}
@@ -36,14 +37,20 @@ function CommandDialog({
   children,
   className,
   showCloseButton = true,
-  isRounded = false,
+  cornerRadius = 8,
+  animatedWidth,
+  isCompact = false,
+  dialogWidth = "normal",
   ...props
 }: React.ComponentProps<typeof Dialog> & {
   title?: string;
   description?: string;
   className?: string;
   showCloseButton?: boolean;
-  isRounded?: boolean;
+  cornerRadius?: any;
+  animatedWidth?: any;
+  isCompact?: boolean;
+  dialogWidth?: "compact" | "normal" | "wide";
 }) {
   return (
     <Dialog {...props}>
@@ -51,35 +58,48 @@ function CommandDialog({
         <DialogTitle>{title}</DialogTitle>
         <DialogDescription>{description}</DialogDescription>
       </DialogHeader>
-      <DialogContent
-        className={cn("overflow-hidden p-0", className)}
-        style={{ 
-          border: "none", 
-          borderRadius: "0", 
-          backgroundColor: "transparent", 
-          boxShadow: "none",
+      {/* Invisible overlay to handle click outside */}
+      <div 
+        className="fixed inset-0 z-[9998]"
+        onClick={() => props.onOpenChange?.(false)}
+      />
+      <motion.div
+        className="fixed z-[9999]"
+        style={{
           position: "fixed",
           top: "auto",
-          bottom: "2.5rem",
+          bottom:
+            typeof window !== "undefined" && window.chrome
+              ? "3rem"
+              : "4rem",
           left: "50%",
-          transform: "translateX(-50%) !important",
-          width: "28rem",
+          transform: "translateX(-50%)",
+          width: animatedWidth || (isCompact
+            ? "20rem"
+            : dialogWidth === "wide"
+              ? "40rem"
+              : dialogWidth === "compact"
+                ? "24rem"
+                : "32rem"),
           maxWidth: "calc(100vw - 2rem)",
-          zIndex: 9999
+          zIndex: 9999,
+          // Browser-specific positioning adjustments
+          WebkitTransform: "translateX(-50%)",
+          MozTransform: "translateX(-50%)",
+          msTransform: "translateX(-50%)",
         }}
-        showCloseButton={showCloseButton}
       >
-        <div
-          className="overflow-hidden bg-background border shadow-lg"
-          style={{
-            borderRadius: isRounded ? "50px" : "25px"
-          }}
+        <Superellipse
+          cornerRadius={cornerRadius}
+          cornerSmoothing={0.7}
+          width={animatedWidth}
+          className={cn("overflow-hidden bg-background p-0", className)}
         >
-          <Command className="[&_[cmdk-group-heading]]:text-muted-foreground **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5 !rounded-none !bg-transparent !border-0">
+          <Command className="[&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5 !rounded-none !border-0 focus:outline-none focus-visible:outline-none [&:focus]:outline-none [&:focus-visible]:outline-none [&_*]:focus:outline-none [&_*]:focus-visible:outline-none" style={{ '--cmd-item-padding': '0.375rem 0.5rem' } as any}>
             {children}
           </Command>
-        </div>
-      </DialogContent>
+        </Superellipse>
+      </motion.div>
     </Dialog>
   );
 }
@@ -91,15 +111,16 @@ function CommandInput({
   return (
     <div
       data-slot="command-input-wrapper"
-      className="flex h-9 items-center gap-2 border-b px-3"
+      className="flex h-12 items-center gap-2 px-3"
     >
       {/* <SearchIcon className="size-4 shrink-0 opacity-50" /> */}
       <CommandPrimitive.Input
         data-slot="command-input"
         className={cn(
-          "placeholder:text-muted-foreground flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
+          "placeholder:text-muted-foreground flex h-12 w-full bg-transparent py-4 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:outline-none [&:focus]:outline-none [&:focus-visible]:outline-none",
           className,
         )}
+        style={{ outline: "none !important" }}
         {...props}
       />
     </div>
@@ -171,10 +192,11 @@ function CommandItem({
     <CommandPrimitive.Item
       data-slot="command-item"
       className={cn(
-        "data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 px-2 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}
+      style={{ padding: '0.5rem', ...props.style }}
     />
   );
 }
