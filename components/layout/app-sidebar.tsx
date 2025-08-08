@@ -1,130 +1,51 @@
 "use client"
 
-import { useState } from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import {
-  Bot,
-  FileText,
-  Calendar,
-  Terminal,
-  Store,
-  FolderOpen,
-  CheckSquare,
-  Table,
-  Code,
-  BookOpen,
-  Mail,
-  Settings,
-} from "lucide-react"
+import { Superellipse } from "@/components/ui/superellipse/superellipse"
+import { LucideIcon } from "lucide-react"
 
-const sidebarItems = [
-  {
-    id: "agent",
-    label: "Agent Inbox",
-    icon: Bot,
-    href: "/agent",
-  },
-  {
-    id: "editor",
-    label: "Editor",
-    icon: FileText,
-    href: "/editor",
-  },
-  {
-    id: "calendar",
-    label: "Calendar", 
-    icon: Calendar,
-    href: "/calendar",
-  },
-  {
-    id: "terminal",
-    label: "Terminal",
-    icon: Terminal,
-    href: "/terminal",
-  },
-  {
-    id: "store",
-    label: "Store",
-    icon: Store,
-    href: "/store",
-  },
-  {
-    id: "files",
-    label: "Files",
-    icon: FolderOpen,
-    href: "/files",
-  },
-  {
-    id: "tasks",
-    label: "Tasks",
-    icon: CheckSquare,
-    href: "/tasks",
-  },
-  {
-    id: "sheets",
-    label: "Sheets",
-    icon: Table,
-    href: "/sheets",
-  },
-  {
-    id: "ide",
-    label: "IDE",
-    icon: Code,
-    href: "/ide",
-  },
-  {
-    id: "notes",
-    label: "Notes",
-    icon: BookOpen,
-    href: "/notes",
-  },
-  {
-    id: "mail",
-    label: "Mail",
-    icon: Mail,
-    href: "/mail",
-  },
-  {
-    id: "settings",
-    label: "Settings",
-    icon: Settings,
-    href: "/settings",
-  },
-]
+export interface AppSidebarItem {
+  id: string
+  label: string
+  icon: LucideIcon
+  count?: number
+  isActive?: boolean
+  onClick?: () => void
+}
 
-export function AppSidebar() {
-  const pathname = usePathname()
+interface AppSidebarProps {
+  items: AppSidebarItem[]
+  className?: string
+}
 
+export function AppSidebar({ items, className }: AppSidebarProps) {
   return (
-    <div className="flex h-full w-12 flex-col border-r bg-muted/30">
-      <div className="flex flex-1 flex-col items-center gap-1 py-2">
-        {sidebarItems.map((item) => {
-          const isActive = pathname?.startsWith(item.href) || false
-          const Icon = item.icon
-
-          return (
-            <Button
-              key={item.id}
-              variant="ghost"
-              size="icon"
-              asChild
+    <div className={cn("w-64 border-r bg-muted/20", className)}>
+      <div className="space-y-2 w-full p-4">
+        {items.map((item) => (
+          <Superellipse key={item.id} cornerRadius={4} cornerSmoothing={1}>
+            <div
               className={cn(
-                "h-10 w-8 rounded-md transition-colors",
-                isActive
-                  ? "bg-primary/5 hover:bg-primary/30"
-                  : "hover:bg-muted"
+                "flex items-center gap-2 p-2 hover:bg-muted/50 cursor-pointer transition-colors",
+                item.isActive && "bg-muted/80"
               )}
+              onClick={item.onClick}
             >
-              <Link href={item.href}>
-                <Icon className="h-5 w-5" />
-                <span className="sr-only">{item.label}</span>
-              </Link>
-            </Button>
-          )
-        })}
+              <item.icon className="h-4 w-4" />
+              <span className={cn(
+                "text-sm",
+                item.isActive ? "font-medium" : "font-normal"
+              )}>
+                {item.label}
+              </span>
+              {item.count !== undefined && (
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {item.count}
+                </span>
+              )}
+            </div>
+          </Superellipse>
+        ))}
       </div>
     </div>
   )

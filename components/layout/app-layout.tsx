@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { AppSidebar } from "./app-sidebar"
+import { GlobalSidebar } from "./global-sidebar"
 import { GlobalHeader } from "./global-header"
 import { StatusBar } from "./status-bar"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
@@ -22,9 +22,9 @@ export function AppLayout({ children }: AppLayoutProps) {
       <GlobalHeader onToggleSidebar={toggleSidebar} />
       
       <div className="flex flex-1 overflow-hidden">
-        {sidebarVisible && <AppSidebar />}
+        {sidebarVisible && <GlobalSidebar />}
         
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto">
           {children}
         </main>
       </div>

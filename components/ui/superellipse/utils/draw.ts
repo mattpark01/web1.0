@@ -107,14 +107,24 @@ export function getSVGPathFromPathParams({
 	bottomLeftPathParams,
 	bottomRightPathParams,
 }: SVGPathInput) {
+	// Ensure precise integer coordinates to prevent subpixel clipping issues
+	const preciseWidth = Math.round(width * 100) / 100;
+	const preciseHeight = Math.round(height * 100) / 100;
+	
+	// Round all path parameters to prevent floating point precision errors
+	const topRightP = Math.round(topRightPathParams.p * 100) / 100;
+	const bottomRightP = Math.round(bottomRightPathParams.p * 100) / 100;
+	const bottomLeftP = Math.round(bottomLeftPathParams.p * 100) / 100;
+	const topLeftP = Math.round(topLeftPathParams.p * 100) / 100;
+	
 	return `
-    M ${width - topRightPathParams.p} 0
+    M ${preciseWidth - topRightP} 0
     ${drawTopRightPath(topRightPathParams)}
-    L ${width} ${height - bottomRightPathParams.p}
+    L ${preciseWidth} ${preciseHeight - bottomRightP}
     ${drawBottomRightPath(bottomRightPathParams)}
-    L ${bottomLeftPathParams.p} ${height}
+    L ${bottomLeftP} ${preciseHeight}
     ${drawBottomLeftPath(bottomLeftPathParams)}
-    L 0 ${topLeftPathParams.p}
+    L 0 ${topLeftP}
     ${drawTopLeftPath(topLeftPathParams)}
     Z
   `
@@ -216,7 +226,7 @@ function toRadians(degrees: number) {
 	return (degrees * Math.PI) / 180;
 }
 
-function preciseRound(number: number, precision: number) {
+function preciseRound(number: number, precision: number = 2) {
 	const factor = Math.pow(10, precision);
 	return Math.round(number * factor) / factor;
 }
@@ -225,7 +235,7 @@ function rounded(strings: TemplateStringsArray, ...values: any[]): string {
 	return strings.reduce((acc, str, i) => {
 		const value = values[i];
 		const roundedValue =
-			typeof value === "number" ? preciseRound(value, 4) : value;
+			typeof value === "number" ? preciseRound(value, 2) : value;
 		return acc + str + (roundedValue ?? "");
 	}, "");
 }

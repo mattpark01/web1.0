@@ -3,9 +3,10 @@ import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
+import { Superellipse } from "@/components/ui/superellipse/superellipse"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-1 whitespace-nowrap rounded text-xs font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  "inline-flex items-center justify-center gap-1 whitespace-nowrap text-xs font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
   {
     variants: {
       variant: {
@@ -23,8 +24,8 @@ const buttonVariants = cva(
       },
       size: {
         default: "px-2.5 py-1 has-[>svg]:px-2",
-        sm: "rounded gap-0.5 px-2 py-1 has-[>svg]:px-1.5",
-        lg: "rounded px-3 py-1.5 has-[>svg]:px-2.5",
+        sm: "gap-0.5 px-2 py-1 has-[>svg]:px-1.5",
+        lg: "px-3 py-1.5 has-[>svg]:px-2.5",
         icon: "size-8",
       },
     },
@@ -40,19 +41,37 @@ function Button({
   variant,
   size,
   asChild = false,
+  cornerRadius = 6,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
+    cornerRadius?: number
   }) {
   const Comp = asChild ? Slot : "button"
 
+  if (asChild) {
+    return (
+      <Comp
+        data-slot="button"
+        className={cn(buttonVariants({ variant, size, className }))}
+        {...props}
+      />
+    )
+  }
+
   return (
-    <Comp
-      data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    />
+    <Superellipse
+      cornerRadius={cornerRadius}
+      cornerSmoothing={1}
+      asChild
+    >
+      <Comp
+        data-slot="button"
+        className={cn(buttonVariants({ variant, size, className }))}
+        {...props}
+      />
+    </Superellipse>
   )
 }
 

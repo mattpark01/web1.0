@@ -26,6 +26,7 @@ function Command({
         "bg-popover text-popover-foreground flex h-full w-full flex-col overflow-hidden",
         className,
       )}
+      role="combobox"
       {...props}
     />
   );
@@ -37,7 +38,7 @@ function CommandDialog({
   children,
   className,
   showCloseButton = true,
-  cornerRadius = 8,
+  cornerRadius = 5,
   animatedWidth,
   isCompact = false,
   dialogWidth = "normal",
@@ -59,43 +60,38 @@ function CommandDialog({
         <DialogDescription>{description}</DialogDescription>
       </DialogHeader>
       {/* Invisible overlay to handle click outside */}
-      <div 
+      <div
         className="fixed inset-0 z-[9998]"
         onClick={() => props.onOpenChange?.(false)}
       />
       <motion.div
-        className="fixed z-[9999]"
+        className="fixed z-[9999] left-1/2 -translate-x-1/2"
         style={{
-          position: "fixed",
-          top: "auto",
           bottom:
-            typeof window !== "undefined" && window.chrome
-              ? "3rem"
-              : "4rem",
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: animatedWidth || (isCompact
-            ? "20rem"
-            : dialogWidth === "wide"
-              ? "40rem"
-              : dialogWidth === "compact"
-                ? "24rem"
-                : "32rem"),
+            typeof window !== "undefined" && window.chrome ? "3rem" : "4rem",
+          width:
+            animatedWidth ||
+            (isCompact
+              ? "20rem"
+              : dialogWidth === "wide"
+                ? "40rem"
+                : dialogWidth === "compact"
+                  ? "24rem"
+                  : "32rem"),
           maxWidth: "calc(100vw - 2rem)",
           zIndex: 9999,
-          // Browser-specific positioning adjustments
-          WebkitTransform: "translateX(-50%)",
-          MozTransform: "translateX(-50%)",
-          msTransform: "translateX(-50%)",
         }}
       >
         <Superellipse
           cornerRadius={cornerRadius}
-          cornerSmoothing={0.7}
+          cornerSmoothing={1}
           width={animatedWidth}
           className={cn("overflow-hidden bg-background p-0", className)}
         >
-          <Command className="[&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5 !rounded-none !border-0 focus:outline-none focus-visible:outline-none [&:focus]:outline-none [&:focus-visible]:outline-none [&_*]:focus:outline-none [&_*]:focus-visible:outline-none" style={{ '--cmd-item-padding': '0.375rem 0.5rem' } as any}>
+          <Command
+            className="[&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5 ! !border-0 focus:outline-none focus-visible:outline-none [&:focus]:outline-none [&:focus-visible]:outline-none [&_*]:focus:outline-none [&_*]:focus-visible:outline-none"
+            style={{ "--cmd-item-padding": "0.375rem 0.5rem" } as any}
+          >
             {children}
           </Command>
         </Superellipse>
@@ -109,21 +105,40 @@ function CommandInput({
   ...props
 }: React.ComponentProps<typeof CommandPrimitive.Input>) {
   return (
-    <div
-      data-slot="command-input-wrapper"
-      className="flex h-12 items-center gap-2 px-3"
-    >
-      {/* <SearchIcon className="size-4 shrink-0 opacity-50" /> */}
-      <CommandPrimitive.Input
-        data-slot="command-input"
-        className={cn(
-          "placeholder:text-muted-foreground flex h-12 w-full bg-transparent py-4 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:outline-none [&:focus]:outline-none [&:focus-visible]:outline-none",
-          className,
-        )}
-        style={{ outline: "none !important" }}
-        {...props}
-      />
-    </div>
+    <form autoComplete="off" onSubmit={(e) => e.preventDefault()}>
+      <div
+        data-slot="command-input-wrapper"
+        className="flex h-12 items-center gap-2 px-3"
+      >
+        {/* <SearchIcon className="size-4 shrink-0 opacity-50" /> */}
+        <CommandPrimitive.Input
+          data-slot="command-input"
+          className={cn(
+            "placeholder:text-muted-foreground flex h-12 w-full bg-transparent py-4 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:outline-none [&:focus]:outline-none [&:focus-visible]:outline-none",
+            className,
+          )}
+          style={{ outline: "none !important" }}
+          autoComplete="off"
+          autoCapitalize="off"
+          autoCorrect="off"
+          data-1p-ignore="true"
+          data-lpignore="true" 
+          data-form-type="search"
+          data-password-disable="true"
+          data-bitwarden-ignore="true"
+          data-dashlane-ignore="true"
+          data-keeper-ignore="true"
+          name="search"
+          inputMode="search"
+          role="combobox"
+          aria-label="Command search"
+          aria-expanded="false"
+          aria-haspopup="listbox"
+          spellCheck="false"
+          {...props}
+        />
+      </div>
+    </form>
   );
 }
 
@@ -189,15 +204,17 @@ function CommandItem({
   ...props
 }: React.ComponentProps<typeof CommandPrimitive.Item>) {
   return (
-    <CommandPrimitive.Item
-      data-slot="command-item"
-      className={cn(
-        "data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 px-2 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-        className,
-      )}
-      {...props}
-      style={{ padding: '0.5rem', ...props.style }}
-    />
+    <Superellipse asChild cornerRadius={4} cornerSmoothing={1}>
+      <CommandPrimitive.Item
+        data-slot="command-item"
+        className={cn(
+          "data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center justify-center gap-3 px-2 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+          className,
+        )}
+        {...props}
+        style={{ padding: "0.5rem", fontSize: "13px", ...props.style }}
+      />
+    </Superellipse>
   );
 }
 

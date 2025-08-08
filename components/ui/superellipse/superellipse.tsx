@@ -1,3 +1,5 @@
+"use client";
+
 import {
   useState,
   useEffect,
@@ -164,6 +166,10 @@ const Superellipse = forwardRef(
       // No transitions - corner radius changes should be instant
       transition: 'none',
       WebkitTransition: 'none',
+      // Ensure content doesn't overflow beyond the clip path
+      overflow: 'hidden',
+      // Add a tiny bit of padding to prevent edge cutoff issues
+      boxSizing: 'border-box' as const,
     };
     
 

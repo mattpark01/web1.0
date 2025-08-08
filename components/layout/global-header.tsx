@@ -3,7 +3,7 @@
 import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,9 @@ import {
   Mail,
   MessageSquare,
   Menu,
+  TrendingUp,
+  CreditCard,
+  Activity,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -97,6 +100,9 @@ type AppPage =
   | "ide"
   | "notes"
   | "mail"
+  | "portfolio"
+  | "quant"
+  | "bank"
   | "settings";
 
 // Constants
@@ -112,12 +118,15 @@ const PAGE_TITLES: Record<AppPage, string> = {
   ide: "IDE",
   notes: "Notes",
   mail: "Mail",
+  portfolio: "Portfolio",
+  quant: "Quant",
+  bank: "Bank",
   settings: "Settings",
-  home: "Dashboard",
+  home: "Home",
 };
 
 const SEARCHABLE_APPS: AppItem[] = [
-  { name: "Dashboard", path: "/", icon: Home, type: "app" },
+  { name: "Home", path: "/", icon: Home, type: "app" },
   { name: "Agent Inbox", path: "/agent", icon: Bot, type: "app" },
   { name: "Editor", path: "/editor", icon: FileText, type: "app" },
   { name: "Calendar", path: "/calendar", icon: Calendar, type: "app" },
@@ -129,10 +138,13 @@ const SEARCHABLE_APPS: AppItem[] = [
   { name: "IDE", path: "/ide", icon: Code, type: "app" },
   { name: "Notes", path: "/notes", icon: BookOpen, type: "app" },
   { name: "Mail", path: "/mail", icon: Mail, type: "app" },
+  { name: "Portfolio", path: "/portfolio", icon: TrendingUp, type: "app" },
+  { name: "Quant", path: "/quant", icon: Activity, type: "app" },
+  { name: "Bank", path: "/bank", icon: CreditCard, type: "app" },
   { name: "Settings", path: "/settings", icon: Settings, type: "app" },
 ];
 
-const COMMAND_SEARCH_DELAY = 150; // Reduce delay from 1000ms to 150ms
+const COMMAND_SEARCH_DELAY = 200; // Wait 200ms before showing results
 const SLASH_COMMAND_PREFIX = "/";
 const BACKSLASH_COMMAND_PREFIX = "\\";
 
@@ -201,6 +213,20 @@ const getPageTitle = (pathname: string): string => {
   return PAGE_TITLES[page] || PAGE_TITLES.home;
 };
 
+const getGreeting = (): string => {
+  const hour = new Date().getHours();
+  
+  if (hour >= 5 && hour < 12) {
+    return "Good morning, Matthew";
+  } else if (hour >= 12 && hour < 17) {
+    return "Good afternoon, Matthew";
+  } else if (hour >= 17 && hour < 21) {
+    return "Good evening, Matthew";
+  } else {
+    return "Good night, Matthew";
+  }
+};
+
 const getAppPage = (pathname: string): AppPage => {
   const segments = pathname.split("/").filter(Boolean);
   return (segments[0] || "home") as AppPage;
@@ -216,7 +242,10 @@ const isValidInputTarget = (element: Element | null): boolean => {
   );
 };
 
-const getAppCommands = (pathname: string, onToggleSidebar?: () => void): CommandItem[] => {
+const getAppCommands = (
+  pathname: string,
+  onToggleSidebar?: () => void,
+): CommandItem[] => {
   const page = getAppPage(pathname);
 
   const commands: Record<AppPage, CommandItem[]> = {
@@ -661,6 +690,124 @@ const getAppCommands = (pathname: string, onToggleSidebar?: () => void): Command
         actionType: "immediate",
       },
     ],
+    portfolio: [
+      {
+        name: "View Holdings",
+        icon: TrendingUp,
+        action: () => console.log("View Holdings"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Add Investment",
+        icon: Plus,
+        action: () => console.log("Add Investment"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Export Portfolio",
+        icon: Download,
+        action: () => console.log("Export Portfolio"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Portfolio Analytics",
+        icon: TrendingUp,
+        action: () => console.log("Portfolio Analytics"),
+        type: "command",
+        actionType: "immediate",
+      },
+    ],
+    quant: [
+      {
+        name: "New Algorithm",
+        icon: Plus,
+        action: () => console.log("New Algorithm"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Backtest Strategy",
+        icon: Activity,
+        action: () => console.log("Backtest Strategy"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Live Trading",
+        icon: TrendingUp,
+        action: () => console.log("Live Trading"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Risk Analysis",
+        icon: Activity,
+        action: () => console.log("Risk Analysis"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Performance Metrics",
+        icon: TrendingUp,
+        action: () => console.log("Performance Metrics"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Market Data",
+        icon: Activity,
+        action: () => console.log("Market Data"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Export Model",
+        icon: Download,
+        action: () => console.log("Export Model"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Import Dataset",
+        icon: Upload,
+        action: () => console.log("Import Dataset"),
+        type: "command",
+        actionType: "immediate",
+      },
+    ],
+    bank: [
+      {
+        name: "Transfer Money",
+        icon: CreditCard,
+        action: () => console.log("Transfer Money"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Pay Bills",
+        icon: CreditCard,
+        action: () => console.log("Pay Bills"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "View Statements",
+        icon: FileText,
+        action: () => console.log("View Statements"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Export Transactions",
+        icon: Download,
+        action: () => console.log("Export Transactions"),
+        type: "command",
+        actionType: "immediate",
+      },
+    ],
     settings: [
       {
         name: "Toggle Sidebar",
@@ -711,7 +858,10 @@ const getAppCommands = (pathname: string, onToggleSidebar?: () => void): Command
   return [...currentAppCommands, ...otherAppsCommands];
 };
 
-const getCurrentAppCommands = (pathname: string, onToggleSidebar?: () => void): CommandItem[] => {
+const getCurrentAppCommands = (
+  pathname: string,
+  onToggleSidebar?: () => void,
+): CommandItem[] => {
   const page = getAppPage(pathname);
 
   const commands: Record<AppPage, CommandItem[]> = {
@@ -1153,6 +1303,124 @@ const getCurrentAppCommands = (pathname: string, onToggleSidebar?: () => void): 
         actionType: "immediate",
       },
     ],
+    portfolio: [
+      {
+        name: "View Holdings",
+        icon: TrendingUp,
+        action: () => console.log("View Holdings"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Add Investment",
+        icon: Plus,
+        action: () => console.log("Add Investment"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Export Portfolio",
+        icon: Download,
+        action: () => console.log("Export Portfolio"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Portfolio Analytics",
+        icon: TrendingUp,
+        action: () => console.log("Portfolio Analytics"),
+        type: "command",
+        actionType: "immediate",
+      },
+    ],
+    quant: [
+      {
+        name: "New Algorithm",
+        icon: Plus,
+        action: () => console.log("New Algorithm"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Backtest Strategy",
+        icon: Activity,
+        action: () => console.log("Backtest Strategy"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Live Trading",
+        icon: TrendingUp,
+        action: () => console.log("Live Trading"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Risk Analysis",
+        icon: Activity,
+        action: () => console.log("Risk Analysis"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Performance Metrics",
+        icon: TrendingUp,
+        action: () => console.log("Performance Metrics"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Market Data",
+        icon: Activity,
+        action: () => console.log("Market Data"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Export Model",
+        icon: Download,
+        action: () => console.log("Export Model"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Import Dataset",
+        icon: Upload,
+        action: () => console.log("Import Dataset"),
+        type: "command",
+        actionType: "immediate",
+      },
+    ],
+    bank: [
+      {
+        name: "Transfer Money",
+        icon: CreditCard,
+        action: () => console.log("Transfer Money"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Pay Bills",
+        icon: CreditCard,
+        action: () => console.log("Pay Bills"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "View Statements",
+        icon: FileText,
+        action: () => console.log("View Statements"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Export Transactions",
+        icon: Download,
+        action: () => console.log("Export Transactions"),
+        type: "command",
+        actionType: "immediate",
+      },
+    ],
     settings: [
       {
         name: "Toggle Sidebar",
@@ -1321,11 +1589,13 @@ export function GlobalHeader({ onToggleSidebar }: GlobalHeaderProps = {}) {
   // Computed values
   const getPlaceholder = () => {
     if (isSlashCommand) {
-      return "Search core actions...";
+      const page = getAppPage(pathname);
+      const appName = PAGE_TITLES[page] || "App";
+      return `Search ${appName} Actions...`;
     } else if (isBackslashCommand) {
-      return "Search settings...";
+      return "Search Global Settings...";
     }
-    return "Search or ask a question...";
+    return getGreeting();
   };
 
   const getDisplayValue = () => {
@@ -1336,7 +1606,7 @@ export function GlobalHeader({ onToggleSidebar }: GlobalHeaderProps = {}) {
       return search.slice(1); // Remove the "/" prefix for display
     }
     if (isBackslashCommand) {
-      return search.slice(1); // Remove the "\" prefix for display  
+      return search.slice(1); // Remove the "\" prefix for display
     }
     return search;
   };
@@ -1349,10 +1619,10 @@ export function GlobalHeader({ onToggleSidebar }: GlobalHeaderProps = {}) {
   const currentAppCommands = getCurrentAppCommands(pathname, onToggleSidebar);
 
   const filteredCommands = isSlashCommand
-    ? allAppCommands.filter((command) => {
+    ? currentAppCommands.filter((command) => {
         const searchTerm = search.slice(1).toLowerCase(); // Remove the "/" prefix
         return (
-          command.type === "command" && 
+          command.type === "command" &&
           (searchTerm === "" || command.name.toLowerCase().includes(searchTerm))
         );
       })
@@ -1360,7 +1630,7 @@ export function GlobalHeader({ onToggleSidebar }: GlobalHeaderProps = {}) {
         (command) =>
           command.type === "command" &&
           (search === "" ||
-          command.name.toLowerCase().includes(search.toLowerCase())),
+            command.name.toLowerCase().includes(search.toLowerCase())),
       );
 
   // Duplicate detection removed to prevent render loops
@@ -1368,14 +1638,14 @@ export function GlobalHeader({ onToggleSidebar }: GlobalHeaderProps = {}) {
   // Removed console.log to prevent render loops
 
   const systemSettings = createSystemSettings(setTheme, theme, onToggleSidebar);
-  
+
   // Duplicate detection removed to prevent render loops
 
   const filteredSettings = isBackslashCommand
     ? systemSettings.filter((setting) => {
         const searchTerm = search.slice(1).toLowerCase(); // Remove the "\" prefix
         return (
-          setting.type === "settings" && 
+          setting.type === "settings" &&
           (searchTerm === "" || setting.name.toLowerCase().includes(searchTerm))
         );
       })
@@ -1383,34 +1653,39 @@ export function GlobalHeader({ onToggleSidebar }: GlobalHeaderProps = {}) {
         (setting) =>
           setting.type === "settings" &&
           (search === "" ||
-          setting.name.toLowerCase().includes(search.toLowerCase())),
+            setting.name.toLowerCase().includes(search.toLowerCase())),
       );
 
-  const shouldShowResults = useMemo(() => 
+  const shouldShowResults =
     (filteredItems.length > 0 ||
       filteredCommands.length > 0 ||
-      filteredSettings.length > 0 ||
-      isSlashCommand ||
-      isBackslashCommand) &&
-    (showResults || isSlashCommand || isBackslashCommand || dialogLevel > 0),
-    [filteredItems.length, filteredCommands.length, filteredSettings.length, isSlashCommand, isBackslashCommand, showResults, dialogLevel]
-  );
+      filteredSettings.length > 0) &&
+    (showResults || isSlashCommand || isBackslashCommand);
 
-  // Simplified: Only manage width, let Superellipse auto-determine corner radius
+  // Smooth spring animation for corner radius (SwiftUI-style)
+  const [cornerRadius, setCornerRadius] = useState(100); // Start with rounded corners
+
+  // Animated width for smooth Superellipse transitions
   const animatedWidth = useMotionValue(320); // Start with compact width
   const animatedWidthSpring = useSpring(animatedWidth, {
     stiffness: 400,
     damping: 40,
     mass: 0.5,
   });
-  
-  // Update width when state changes
+
+  // Update corner radius and width when state changes
   useEffect(() => {
-    const shouldExpand = dialogLevel > 0 || shouldShowResults;
-    const targetWidth = shouldExpand ? 512 : 320;
-    
+    const searchLength = search ? search.length : 0;
+
+    // Corner radius logic:
+    // - Only change to 8 when list renders (shouldShowResults) or in hierarchical dialogs
+    // - Otherwise keep at 100 (full rounded)
+    const targetCornerRadius = shouldShowResults || dialogLevel > 0 ? 8 : 100;
+    const targetWidth = shouldShowResults || dialogLevel > 0 ? 512 : 320;
+
+    setCornerRadius(targetCornerRadius);
     animatedWidth.set(targetWidth);
-  }, [shouldShowResults, dialogLevel]);
+  }, [search, shouldShowResults, dialogLevel]);
 
   const topHit = isSlashCommand
     ? filteredCommands.length > 0
@@ -1476,7 +1751,9 @@ export function GlobalHeader({ onToggleSidebar }: GlobalHeaderProps = {}) {
         if (topHit.name.toLowerCase().startsWith(searchTerm)) {
           setSearch("\\" + topHit.name);
         }
-      } else if (topHit.name.toLowerCase().startsWith(getDisplayValue().toLowerCase())) {
+      } else if (
+        topHit.name.toLowerCase().startsWith(getDisplayValue().toLowerCase())
+      ) {
         setSearch(topHit.name);
       }
     }
@@ -1532,7 +1809,7 @@ export function GlobalHeader({ onToggleSidebar }: GlobalHeaderProps = {}) {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        setOpen((open) => !open);
+        setOpen(true);
       } else if (
         e.key === SLASH_COMMAND_PREFIX &&
         !e.metaKey &&
@@ -1543,7 +1820,6 @@ export function GlobalHeader({ onToggleSidebar }: GlobalHeaderProps = {}) {
       ) {
         e.preventDefault();
         setOpen(true);
-        setOpenWithSlash(true);
       } else if (
         e.key === BACKSLASH_COMMAND_PREFIX &&
         !e.metaKey &&
@@ -1598,7 +1874,7 @@ export function GlobalHeader({ onToggleSidebar }: GlobalHeaderProps = {}) {
                     closeDialog();
                   }
                 }}
-                className="cursor-pointer flex items-center justify-between rounded-sm"
+                className="cursor-pointer flex items-center justify-between"
               >
                 <div className="flex items-center gap-2">
                   <Icon className="h-4 w-4" />
@@ -1631,7 +1907,7 @@ export function GlobalHeader({ onToggleSidebar }: GlobalHeaderProps = {}) {
                     }
                   }
                 }}
-                className="cursor-pointer flex items-center justify-between rounded-sm"
+                className="cursor-pointer flex items-center justify-between"
               >
                 <div className="flex items-center gap-2">
                   <Icon className="h-4 w-4" />
@@ -1657,7 +1933,7 @@ export function GlobalHeader({ onToggleSidebar }: GlobalHeaderProps = {}) {
                   key={item.path}
                   value={item.name}
                   onSelect={() => handleSelect(item.path)}
-                  className="cursor-pointer flex items-center justify-between rounded-sm"
+                  className="cursor-pointer flex items-center justify-between"
                 >
                   <div className="flex items-center gap-2">
                     <Icon className="h-4 w-4" />
@@ -1686,7 +1962,7 @@ export function GlobalHeader({ onToggleSidebar }: GlobalHeaderProps = {}) {
                       closeDialog();
                     }
                   }}
-                  className="cursor-pointer flex items-center justify-between rounded-sm"
+                  className="cursor-pointer flex items-center justify-between"
                 >
                   <div className="flex items-center gap-2">
                     <Icon className="h-4 w-4" />
@@ -1717,7 +1993,7 @@ export function GlobalHeader({ onToggleSidebar }: GlobalHeaderProps = {}) {
                       }
                     }
                   }}
-                  className="cursor-pointer flex items-center justify-between rounded-sm"
+                  className="cursor-pointer flex items-center justify-between"
                 >
                   <div className="flex items-center gap-2">
                     <Icon className="h-4 w-4" />
@@ -1744,7 +2020,7 @@ export function GlobalHeader({ onToggleSidebar }: GlobalHeaderProps = {}) {
           open={true}
           onOpenChange={handleOpenChange}
           className="overflow-hidden p-0 [&_[data-slot=command-input-wrapper]]:border-b-0"
-          cornerRadius={(shouldShowResults || dialogLevel > 0) ? 8 : 100}
+          cornerRadius={cornerRadius}
           animatedWidth={animatedWidthSpring}
           isCompact={!shouldShowResults && dialogLevel === 0}
           dialogWidth={
@@ -1752,7 +2028,6 @@ export function GlobalHeader({ onToggleSidebar }: GlobalHeaderProps = {}) {
               ? currentDialogData.dialogConfig.width
               : "normal"
           }
-          style={{ outline: "none !important" }}
         >
           <div
             className="relative [&_*]:!outline-none [&_*]:focus:!outline-none [&_*]:focus-visible:!outline-none [&_*]:!ring-0 [&_*]:!shadow-none [&_*]:!box-shadow-none [&_*]:focus:!ring-0 [&_*]:focus-visible:!ring-0 [&_*]:focus:!shadow-none [&_*]:focus-visible:!shadow-none [&_*]:focus:!border-transparent [&_*]:focus-visible:!border-transparent [&_*]:focus:!animate-none [&_*]:focus-visible:!animate-none"
@@ -1793,8 +2068,7 @@ export function GlobalHeader({ onToggleSidebar }: GlobalHeaderProps = {}) {
                       setSearch(value);
                     }
                   }}
-                  className="[&>div]:border-b-0 [&>div]:bg-transparent p-2 text-lg relative z-10 bg-transparent focus:outline-none focus-visible:outline-none [&:focus]:outline-none [&:focus-visible]:outline-none [&_input]:focus:outline-none [&_input]:focus-visible:outline-none"
-                  style={{ outline: "none !important" }}
+                  className="[&>div]:border-b-0 [&>div]:bg-transparent p-2 text-lg relative z-10 bg-transparent"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === "Escape") {
@@ -1807,12 +2081,19 @@ export function GlobalHeader({ onToggleSidebar }: GlobalHeaderProps = {}) {
                         // Close the dialog completely if already in regular state
                         closeDialog();
                       }
-                    } else if (e.key === "/" && (isBackslashCommand || (!isSlashCommand && !isBackslashCommand))) {
-                      // Switch to slash command mode or enter it
+                    } else if (
+                      e.key === "/" &&
+                      !isSlashCommand
+                    ) {
+                      // Switch to slash command mode
                       e.preventDefault();
                       setSearch("/");
                       setShowResults(true);
-                    } else if (e.key === "\\" && (isSlashCommand || (!isSlashCommand && !isBackslashCommand))) {
+                    } else if (
+                      e.key === "\\" &&
+                      (isSlashCommand ||
+                        (!isSlashCommand && !isBackslashCommand))
+                    ) {
                       // Switch to backslash command mode or enter it
                       e.preventDefault();
                       setSearch("\\");
@@ -1898,8 +2179,7 @@ export function GlobalHeader({ onToggleSidebar }: GlobalHeaderProps = {}) {
                           </div>
                           <div className="ml-auto pr-2">
                             <topHit.icon
-                              className="h-4 w-4"
-                              style={{ color: "rgba(128, 128, 128, 1.0)" }}
+                              className="h-4 w-4 text-muted-foreground"
                             />
                           </div>
                         </div>
@@ -1947,18 +2227,10 @@ export function GlobalHeader({ onToggleSidebar }: GlobalHeaderProps = {}) {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onToggleSidebar}
-        >
+        <Button variant="ghost" size="icon" onClick={onToggleSidebar}>
           <Menu className="h-4 w-4" />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setOpen(true)}
-        >
+        <Button variant="ghost" size="icon" onClick={() => setOpen(true)}>
           <Search className="h-4 w-4" />
         </Button>
         <Button

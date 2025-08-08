@@ -52,7 +52,7 @@ export function SpawnAgentDialog({
 
   return (
     <div
-      className="min-h-[400px] px-1"
+      className="px-1"
       onFocus={(e) => (e.target.style.outline = "none")}
       onBlur={(e) => (e.target.style.outline = "none")}
       style={{
@@ -67,7 +67,7 @@ export function SpawnAgentDialog({
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 mt-1">
         <div className="flex items-center gap-2">
-          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10">
+          <div className="flex items-center justify-center w-6 h-6  bg-primary/10">
             <Bot className="h-3 w-3 text-primary" />
           </div>
           <div>

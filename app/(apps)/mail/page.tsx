@@ -9,37 +9,44 @@ import {
   Trash2,
   Paperclip,
 } from "lucide-react";
+import { AppSidebar, type AppSidebarItem } from "@/components/layout/app-sidebar";
 
 export default function MailPage() {
+  const sidebarItems: AppSidebarItem[] = [
+    {
+      id: "inbox",
+      label: "Inbox",
+      icon: Inbox,
+      count: 12,
+      isActive: true,
+    },
+    {
+      id: "starred",
+      label: "Starred",
+      icon: Star,
+      count: 3,
+    },
+    {
+      id: "sent",
+      label: "Sent",
+      icon: Send,
+    },
+    {
+      id: "archive",
+      label: "Archive",
+      icon: Archive,
+    },
+    {
+      id: "trash",
+      label: "Trash",
+      icon: Trash2,
+    },
+  ]
+
   return (
     <div className="flex h-full">
       {/* Sidebar */}
-      <div className="w-64 border-r bg-muted/20 p-4">
-        <div className="space-y-2 w-full">
-          <div className="flex items-center gap-2 rounded-md p-2 hover:bg-muted/50 cursor-pointer bg-muted/80">
-            <Inbox className="h-4 w-4" />
-            <span className="text-sm font-medium">Inbox</span>
-            <span className="ml-auto text-xs text-muted-foreground">12</span>
-          </div>
-          <div className="flex items-center gap-2 rounded-md p-2 hover:bg-muted/50 cursor-pointer">
-            <Star className="h-4 w-4" />
-            <span className="text-sm">Starred</span>
-            <span className="ml-auto text-xs text-muted-foreground">3</span>
-          </div>
-          <div className="flex items-center gap-2 rounded-md p-2 hover:bg-muted/50 cursor-pointer">
-            <Send className="h-4 w-4" />
-            <span className="text-sm">Sent</span>
-          </div>
-          <div className="flex items-center gap-2 rounded-md p-2 hover:bg-muted/50 cursor-pointer">
-            <Archive className="h-4 w-4" />
-            <span className="text-sm">Archive</span>
-          </div>
-          <div className="flex items-center gap-2 rounded-md p-2 hover:bg-muted/50 cursor-pointer">
-            <Trash2 className="h-4 w-4" />
-            <span className="text-sm">Trash</span>
-          </div>
-        </div>
-      </div>
+      <AppSidebar items={sidebarItems} />
 
       {/* Main content */}
       <div className="flex-1 flex flex-col">
