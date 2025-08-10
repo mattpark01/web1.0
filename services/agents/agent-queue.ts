@@ -1,0 +1,375 @@
+/**
+ * Agent Queue Service
+ * Manages scheduled and background agent execution using Inngest
+ */
+
+import { Inngest } from 'inngest';
+import { PrismaClient, AgentStatus } from '@prisma/client';
+import { AgentExecutor } from './agent-executor';
+
+const prisma = new PrismaClient();
+
+// Initialize Inngest client
+export const inngest = new Inngest({ 
+  id: 'spatiolabs',
+  eventKey: process.env.INNGEST_EVENT_KEY,
+});
+
+/**
+ * Schedule agent execution
+ */
+export const scheduleAgentExecution = inngest.createFunction(
+  { id: 'schedule-agent-execution', name: 'Schedule Agent Execution' },
+  { event: 'agent/schedule.requested' },
+  async ({ event, step }) => {
+    const { agentId, userId, input, scheduledAt } = event.data;
+
+    // Wait until scheduled time if provided
+    if (scheduledAt) {
+      await step.sleep('wait-until-scheduled', scheduledAt);
+    }
+
+    // Execute the agent
+    const result = await step.run('execute-agent', async () => {
+      const executor = new AgentExecutor();
+      return await executor.execute({
+        agentId,
+        userId,
+        input,
+        trigger: 'scheduled',
+      });
+    });
+
+    // Send notification if configured
+    await step.run('send-notification', async () => {
+      const agent = await prisma.agents.findUnique({
+        where: { id: agentId },
+      });
+
+      if (agent) {
+        const config = agent.configuration as any;
+        if (config.notifications?.onComplete) {
+          await sendNotification(userId, {
+            type: 'agent.completed',
+            title: `Agent "${agent.name}" completed`,
+            data: result,
+          });
+        }
+      }
+    });
+
+    return result;
+  }
+);
+
+/**
+ * Process agent cron schedules
+ */
+export const processAgentSchedules = inngest.createFunction(
+  { id: 'process-agent-schedules', name: 'Process Agent Schedules' },
+  { cron: '* * * * *' }, // Run every minute
+  async ({ step }) => {
+    // Find all active schedules
+    const schedules = await step.run('find-schedules', async () => {
+      return await prisma.agent_schedules.findMany({
+        where: {
+          is_active: true,
+        },
+        include: {
+          agents: true,
+        },
+      });
+    });
+
+    // Check each schedule
+    for (const schedule of schedules) {
+      await step.run(`check-schedule-${schedule.id}`, async () => {
+        const shouldRun = await shouldRunSchedule(schedule);
+        
+        if (shouldRun) {
+          // Trigger agent execution
+          await inngest.send({
+            name: 'agent/schedule.requested',
+            data: {
+              agentId: schedule.agent_id,
+              userId: schedule.agents.user_id,
+              trigger: 'cron',
+            },
+          });
+
+          // Update next run time
+          await prisma.agents.update({
+            where: { id: schedule.agent_id },
+            data: {
+              next_run_at: calculateNextRunTime(schedule.cron_expression),
+            },
+          });
+        }
+      });
+    }
+  }
+);
+
+/**
+ * Handle agent task queue
+ */
+export const processAgentTasks = inngest.createFunction(
+  { id: 'process-agent-tasks', name: 'Process Agent Tasks' },
+  { event: 'agent/task.created' },
+  async ({ event, step }) => {
+    const { taskId } = event.data;
+
+    // Get task details
+    const task = await step.run('get-task', async () => {
+      return await prisma.agent_tasks.findUnique({
+        where: { id: taskId },
+        include: { agents: true },
+      });
+    });
+
+    if (!task) {
+      throw new Error('Task not found');
+    }
+
+    // Update task status
+    await step.run('update-task-status', async () => {
+      await prisma.agent_tasks.update({
+        where: { id: taskId },
+        data: {
+          status: 'RUNNING',
+          started_at: new Date(),
+        },
+      });
+    });
+
+    try {
+      // Execute task
+      const result = await step.run('execute-task', async () => {
+        return await executeAgentTask(task);
+      });
+
+      // Update task with result
+      await step.run('update-task-result', async () => {
+        await prisma.agent_tasks.update({
+          where: { id: taskId },
+          data: {
+            status: 'COMPLETED',
+            completed_at: new Date(),
+            result: result as any,
+          },
+        });
+      });
+
+      return result;
+    } catch (error) {
+      // Update task with error
+      await step.run('update-task-error', async () => {
+        await prisma.agent_tasks.update({
+          where: { id: taskId },
+          data: {
+            status: 'FAILED',
+            completed_at: new Date(),
+            error: error instanceof Error ? error.message : 'Unknown error',
+          },
+        });
+      });
+
+      throw error;
+    }
+  }
+);
+
+/**
+ * Monitor long-running agents
+ */
+export const monitorLongRunningAgents = inngest.createFunction(
+  { id: 'monitor-long-running-agents', name: 'Monitor Long Running Agents' },
+  { cron: '*/5 * * * *' }, // Every 5 minutes
+  async ({ step }) => {
+    // Find running executions
+    const executions = await step.run('find-running-executions', async () => {
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      
+      return await prisma.agent_executions.findMany({
+        where: {
+          status: 'RUNNING',
+          started_at: {
+            lt: oneHourAgo,
+          },
+        },
+        include: {
+          agents: true,
+        },
+      });
+    });
+
+    // Check each execution
+    for (const execution of executions) {
+      await step.run(`check-execution-${execution.id}`, async () => {
+        const agent = execution.agents;
+        const config = agent.configuration as any;
+        const maxRuntime = config.maxRuntime || 3600000; // Default 1 hour
+
+        const runtime = Date.now() - execution.started_at.getTime();
+        
+        if (runtime > maxRuntime) {
+          // Timeout the execution
+          await prisma.agent_executions.update({
+            where: { id: execution.id },
+            data: {
+              status: 'FAILED',
+              ended_at: new Date(),
+              error: 'Execution timeout',
+            },
+          });
+
+          // Create alert
+          await prisma.agent_alerts.create({
+            data: {
+              id: crypto.randomUUID(),
+              agent_id: agent.id,
+              user_id: agent.user_id,
+              type: 'EXECUTION_FAILED',
+              severity: 'HIGH',
+              message: `Agent execution timed out after ${Math.round(runtime / 60000)} minutes`,
+              metadata: { executionId: execution.id },
+            },
+          });
+        }
+      });
+    }
+  }
+);
+
+/**
+ * Execute agent task based on type
+ */
+async function executeAgentTask(task: any): Promise<any> {
+  const { type, parameters, agents } = task;
+  
+  switch (type) {
+    case 'data_sync':
+      return await syncAgentData(agents.user_id, parameters);
+    
+    case 'data_analysis':
+      return await analyzeData(agents.user_id, parameters);
+    
+    case 'automation':
+      return await runAutomation(agents.user_id, parameters);
+    
+    default:
+      throw new Error(`Unknown task type: ${type}`);
+  }
+}
+
+/**
+ * Sync data from integrations
+ */
+async function syncAgentData(userId: string, params: any) {
+  const { source, filters } = params;
+  
+  // Sync based on source
+  switch (source) {
+    case 'gmail':
+      return await syncGmailData(userId, filters);
+    
+    case 'linear':
+      return await syncLinearData(userId, filters);
+    
+    case 'github':
+      return await syncGithubData(userId, filters);
+    
+    default:
+      throw new Error(`Unknown sync source: ${source}`);
+  }
+}
+
+/**
+ * Sync Gmail data
+ */
+async function syncGmailData(userId: string, filters: any) {
+  // Implementation would use Gmail API
+  return {
+    source: 'gmail',
+    synced: 0,
+    message: 'Gmail sync not implemented',
+  };
+}
+
+/**
+ * Sync Linear data
+ */
+async function syncLinearData(userId: string, filters: any) {
+  // Implementation would use Linear API
+  return {
+    source: 'linear',
+    synced: 0,
+    message: 'Linear sync not implemented',
+  };
+}
+
+/**
+ * Sync GitHub data
+ */
+async function syncGithubData(userId: string, filters: any) {
+  // Implementation would use GitHub API
+  return {
+    source: 'github',
+    synced: 0,
+    message: 'GitHub sync not implemented',
+  };
+}
+
+/**
+ * Analyze user data
+ */
+async function analyzeData(userId: string, params: any) {
+  const { dataType, analysis } = params;
+  
+  // Perform analysis based on type
+  return {
+    dataType,
+    analysis,
+    result: 'Analysis completed',
+  };
+}
+
+/**
+ * Run automation
+ */
+async function runAutomation(userId: string, params: any) {
+  const { workflow, triggers } = params;
+  
+  // Execute workflow
+  return {
+    workflow,
+    triggers,
+    result: 'Automation executed',
+  };
+}
+
+/**
+ * Check if schedule should run
+ */
+async function shouldRunSchedule(schedule: any): Promise<boolean> {
+  // This would use a cron parser to check if it's time to run
+  // For now, return false
+  return false;
+}
+
+/**
+ * Calculate next run time from cron expression
+ */
+function calculateNextRunTime(cronExpression: string): Date {
+  // This would use a cron parser to calculate next run
+  // For now, return 1 hour from now
+  return new Date(Date.now() + 60 * 60 * 1000);
+}
+
+/**
+ * Send notification to user
+ */
+async function sendNotification(userId: string, notification: any) {
+  // This would send via email, push, or in-app notification
+  console.log(`Notification for user ${userId}:`, notification);
+}

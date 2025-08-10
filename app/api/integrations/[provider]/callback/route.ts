@@ -1,0 +1,131 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { integrationRegistry } from '@/lib/integrations/core/registry'
+import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+
+// GET /api/integrations/[provider]/callback - OAuth callback
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { provider: string } }
+) {
+  try {
+    const session = await auth()
+    if (!session?.user) {
+      return NextResponse.redirect('/login?error=unauthorized')
+    }
+
+    const searchParams = request.nextUrl.searchParams
+    const code = searchParams.get('code')
+    const state = searchParams.get('state')
+    const error = searchParams.get('error')
+
+    if (error) {
+      return NextResponse.redirect(`/settings/integrations?error=${error}`)
+    }
+
+    if (!code || !state) {
+      return NextResponse.redirect('/settings/integrations?error=invalid_callback')
+    }
+
+    // Verify state for CSRF protection
+    const storedState = request.cookies.get(`oauth_state_${params.provider}`)?.value
+    if (!storedState || storedState !== state) {
+      return NextResponse.redirect('/settings/integrations?error=invalid_state')
+    }
+
+    const adapter = integrationRegistry.getAdapter(params.provider)
+    if (!adapter) {
+      return NextResponse.redirect('/settings/integrations?error=provider_not_found')
+    }
+
+    // Get PKCE verifier if needed
+    const codeVerifier = request.cookies.get(`pkce_verifier_${params.provider}`)?.value
+
+    // Exchange code for tokens using the adapter
+    const connection = await adapter.authenticate({
+      code,
+      codeVerifier,
+      userId: session.user.id,
+    })
+
+    // Get provider details
+    const provider = integrationRegistry.getProvider(params.provider)
+    if (!provider) {
+      return NextResponse.redirect('/settings/integrations?error=provider_not_found')
+    }
+
+    // Check if provider exists in database, if not create it
+    let dbProvider = await prisma.integrationProvider.findUnique({
+      where: { slug: params.provider }
+    })
+
+    if (!dbProvider) {
+      dbProvider = await prisma.integrationProvider.create({
+        data: {
+          slug: provider.slug,
+          name: provider.name,
+          description: provider.description,
+          iconUrl: provider.iconUrl,
+          category: provider.category,
+          authType: provider.auth.type,
+          authConfig: provider.auth.config as any,
+          apiBaseUrl: provider.api.baseUrl,
+          apiVersion: provider.api.version,
+          features: provider.features,
+          endpoints: provider.endpoints as any,
+          dataMappings: provider.dataMappings as any,
+          documentationUrl: provider.documentationUrl,
+          isVerified: provider.isVerified || false,
+        }
+      })
+    }
+
+    // Save connection to database
+    await prisma.integrationConnection.upsert({
+      where: {
+        userId_providerId_accountId: {
+          userId: session.user.id,
+          providerId: dbProvider.id,
+          accountId: connection.accountId || '',
+        }
+      },
+      update: {
+        connectionName: connection.connectionName,
+        accountEmail: connection.accountEmail,
+        accessToken: connection.credentials.accessToken,
+        refreshToken: connection.credentials.refreshToken,
+        expiresAt: connection.credentials.expiresAt,
+        tokenType: connection.credentials.tokenType,
+        scopes: connection.credentials.scopes,
+        rawCredentials: connection.credentials.raw as any,
+        status: 'active',
+        updatedAt: new Date(),
+      },
+      create: {
+        userId: session.user.id,
+        providerId: dbProvider.id,
+        connectionName: connection.connectionName,
+        accountId: connection.accountId,
+        accountEmail: connection.accountEmail,
+        accessToken: connection.credentials.accessToken,
+        refreshToken: connection.credentials.refreshToken,
+        expiresAt: connection.credentials.expiresAt,
+        tokenType: connection.credentials.tokenType,
+        scopes: connection.credentials.scopes,
+        rawCredentials: connection.credentials.raw as any,
+        status: 'active',
+        syncEnabled: true,
+      }
+    })
+
+    // Clear cookies
+    const response = NextResponse.redirect('/settings/integrations?success=connected')
+    response.cookies.delete(`oauth_state_${params.provider}`)
+    response.cookies.delete(`pkce_verifier_${params.provider}`)
+
+    return response
+  } catch (error) {
+    console.error('OAuth callback error:', error)
+    return NextResponse.redirect('/settings/integrations?error=connection_failed')
+  }
+}

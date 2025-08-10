@@ -1,0 +1,832 @@
+// SpatioLabs Complete Data Model
+// This schema represents all apps and their relationships
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// CORE USER & AUTHENTICATION
+// ==========================================
+
+model User {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  username         String?   @unique
+  firstName        String?
+  lastName         String?
+  name             String?   // Full name
+  password         String?   // Hashed
+  profilePhoto     String?
+  
+  // Subscription & Billing
+  tier             UserTier  @default(FREE)
+  stripeCustomerId String?
+  subscriptionId   String?
+  subscriptionStatus SubscriptionStatus?
+  trialEndsAt      DateTime?
+  
+  // Authentication
+  sessionId        String?   @unique
+  lastLoginAt      DateTime?
+  emailVerified    Boolean   @default(false)
+  
+  // Metadata
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime? // Soft delete
+  
+  // Settings stored as JSON
+  settings         Json      @default("{}")
+  
+  // Relations
+  notes            Note[]
+  tasks            Task[]
+  emails           Email[]
+  calendarEvents   CalendarEvent[]
+  files            File[]
+  bankAccounts     BankAccount[]
+  portfolios       Portfolio[]
+  sheets           Sheet[]
+  agents           Agent[]
+  agentExecutions  AgentExecution[]
+  integrations     Integration[]
+  workspaceItems   WorkspaceItem[]
+  activities       Activity[]
+  
+  // Workspace relation (from existing schema)
+  workspaces       Workspace[]
+  workspaceSessions WorkspaceSession[]
+  
+  @@index([email])
+  @@index([tier])
+  @@index([createdAt])
+}
+
+enum UserTier {
+  FREE
+  BASIC
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  PAST_DUE
+  TRIALING
+}
+
+// ==========================================
+// NOTES APP
+// ==========================================
+
+model Note {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title       String
+  content     String   @db.Text // Markdown or rich text
+  contentType NoteContentType @default(MARKDOWN)
+  
+  // Organization
+  folderId    String?
+  folder      NoteFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  tags        String[]
+  isPinned    Boolean  @default(false)
+  isFavorite  Boolean  @default(false)
+  isArchived  Boolean  @default(false)
+  
+  // Sharing
+  isPublic    Boolean  @default(false)
+  shareToken  String?  @unique
+  
+  // Metadata
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime? // Soft delete
+  
+  // Virtual filesystem path
+  virtualPath String?  // e.g., "/notes/work/meeting.md"
+  
+  @@index([userId, createdAt])
+  @@index([userId, updatedAt])
+  @@index([folderId])
+  @@index([virtualPath])
+}
+
+model NoteFolder {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  parentId    String?
+  parent      NoteFolder? @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children    NoteFolder[] @relation("FolderHierarchy")
+  notes       Note[]
+  
+  color       String?
+  icon        String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, name, parentId])
+  @@index([userId])
+}
+
+enum NoteContentType {
+  MARKDOWN
+  RICH_TEXT
+  PLAIN_TEXT
+}
+
+// ==========================================
+// TASKS APP
+// ==========================================
+
+model Task {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title       String
+  description String?  @db.Text
+  status      TaskStatus @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+  
+  // Dates
+  dueDate     DateTime?
+  startDate   DateTime?
+  completedAt DateTime?
+  
+  // Organization
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  parentId    String?
+  parent      Task?    @relation("SubTasks", fields: [parentId], references: [id], onDelete: Cascade)
+  subtasks    Task[]   @relation("SubTasks")
+  
+  tags        String[]
+  
+  // Integration
+  externalId  String?  // ID in Linear, Jira, etc.
+  externalProvider String? // 'linear', 'jira', 'github'
+  lastSyncedAt DateTime?
+  
+  // Recurrence
+  recurrenceRule String? // RRULE format
+  recurrenceId   String? // ID of recurrence series
+  
+  // Metadata
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  
+  // Virtual filesystem
+  virtualPath String?  // e.g., "/tasks/project/task-1"
+  
+  @@index([userId, status])
+  @@index([userId, dueDate])
+  @@index([projectId])
+  @@index([externalProvider, externalId])
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  color       String?
+  icon        String?
+  
+  tasks       Task[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// ==========================================
+// MAIL APP
+// ==========================================
+
+model Email {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Email data
+  messageId   String   @unique // RFC 822 Message-ID
+  threadId    String?
+  
+  from        String
+  to          String[]
+  cc          String[]
+  bcc         String[]
+  subject     String
+  body        String   @db.Text
+  bodyHtml    String?  @db.Text
+  
+  // Organization
+  folder      EmailFolder @default(INBOX)
+  labels      String[]
+  isRead      Boolean  @default(false)
+  isStarred   Boolean  @default(false)
+  isImportant Boolean  @default(false)
+  isDraft     Boolean  @default(false)
+  
+  // Attachments stored in R2
+  attachments Json[]   // [{name, size, r2Key, mimeType}]
+  
+  // Integration
+  gmailId     String?  @unique
+  gmailThreadId String?
+  outlookId   String?  @unique
+  
+  // Metadata
+  sentAt      DateTime?
+  receivedAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Virtual filesystem
+  virtualPath String?  // e.g., "/mail/inbox/email-123"
+  
+  @@index([userId, folder])
+  @@index([userId, receivedAt])
+  @@index([threadId])
+}
+
+enum EmailFolder {
+  INBOX
+  SENT
+  DRAFTS
+  SPAM
+  TRASH
+  ARCHIVE
+  CUSTOM
+}
+
+// ==========================================
+// CALENDAR APP
+// ==========================================
+
+model CalendarEvent {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title       String
+  description String?  @db.Text
+  location    String?
+  
+  // Time
+  startTime   DateTime
+  endTime     DateTime
+  allDay      Boolean  @default(false)
+  timezone    String   @default("UTC")
+  
+  // Recurrence
+  recurrenceRule String? // RRULE format
+  recurrenceId   String? // For recurring event instances
+  
+  // Participants
+  attendees   Json[]   // [{email, name, status, role}]
+  organizer   String?
+  
+  // Metadata
+  color       String?
+  reminders   Json[]   // [{method: 'email'|'popup', minutes: 15}]
+  
+  // Integration
+  googleEventId String? @unique
+  outlookEventId String? @unique
+  
+  // Status
+  status      EventStatus @default(CONFIRMED)
+  visibility  EventVisibility @default(DEFAULT)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Virtual filesystem
+  virtualPath String?  // e.g., "/calendar/2024-01/meeting"
+  
+  @@index([userId, startTime])
+  @@index([googleEventId])
+}
+
+enum EventStatus {
+  CONFIRMED
+  TENTATIVE
+  CANCELLED
+}
+
+enum EventVisibility {
+  DEFAULT
+  PUBLIC
+  PRIVATE
+}
+
+// ==========================================
+// FILES APP
+// ==========================================
+
+model File {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name        String
+  path        String   // Virtual path in UI
+  r2Key       String   @unique // Actual R2 storage key
+  
+  size        BigInt
+  mimeType    String
+  
+  // Organization
+  folderId    String?
+  folder      FileFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  
+  // Metadata
+  metadata    Json?    // EXIF, dimensions, duration, etc.
+  thumbnail   String?  // R2 key for thumbnail
+  
+  // Sharing
+  isPublic    Boolean  @default(false)
+  shareToken  String?  @unique
+  downloadCount Int    @default(0)
+  
+  // Integration
+  driveFileId String?  @unique // Google Drive ID
+  dropboxId   String?  @unique
+  onedriveId  String?  @unique
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Virtual filesystem
+  virtualPath String   // e.g., "/files/documents/report.pdf"
+  
+  @@index([userId, path])
+  @@index([folderId])
+  @@unique([userId, virtualPath])
+}
+
+model FileFolder {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  parentId    String?
+  parent      FileFolder? @relation("FileFolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children    FileFolder[] @relation("FileFolderHierarchy")
+  files       File[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, name, parentId])
+  @@index([userId])
+}
+
+// ==========================================
+// BANKING APP (via Plaid)
+// ==========================================
+
+model BankAccount {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Plaid data
+  plaidAccountId String @unique
+  plaidItemId    String
+  plaidAccessToken String // Encrypted
+  
+  // Account info
+  name        String
+  officialName String?
+  type        String   // 'checking', 'savings', 'credit', etc.
+  subtype     String?
+  mask        String   // Last 4 digits
+  
+  // Balances
+  currentBalance Decimal? @db.Decimal(19, 4)
+  availableBalance Decimal? @db.Decimal(19, 4)
+  creditLimit    Decimal? @db.Decimal(19, 4)
+  
+  // Metadata
+  institution String
+  currency    String   @default("USD")
+  
+  lastSyncedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  transactions Transaction[]
+  
+  @@index([userId])
+  @@index([plaidItemId])
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  accountId   String
+  account     BankAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  
+  plaidTransactionId String @unique
+  
+  amount      Decimal  @db.Decimal(19, 4)
+  date        DateTime
+  name        String
+  merchantName String?
+  
+  category    String[]
+  pending     Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([accountId, date])
+}
+
+// ==========================================
+// PORTFOLIO APP
+// ==========================================
+
+model Portfolio {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name        String
+  provider    String   // 'robinhood', 'alpaca', 'manual'
+  
+  // Authentication
+  accessToken String?  // Encrypted
+  refreshToken String? // Encrypted
+  
+  positions   Position[]
+  
+  // Totals
+  totalValue  Decimal? @db.Decimal(19, 4)
+  dayChange   Decimal? @db.Decimal(19, 4)
+  dayChangePercent Decimal? @db.Decimal(19, 4)
+  
+  lastSyncedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model Position {
+  id          String   @id @default(cuid())
+  portfolioId String
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  
+  symbol      String
+  quantity    Decimal  @db.Decimal(19, 8)
+  avgCost     Decimal  @db.Decimal(19, 4)
+  currentPrice Decimal? @db.Decimal(19, 4)
+  marketValue Decimal?  @db.Decimal(19, 4)
+  
+  dayChange   Decimal? @db.Decimal(19, 4)
+  totalGainLoss Decimal? @db.Decimal(19, 4)
+  
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([portfolioId, symbol])
+  @@index([portfolioId])
+}
+
+// ==========================================
+// SHEETS APP
+// ==========================================
+
+model Sheet {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name        String
+  description String?
+  
+  // Sheet data stored as JSON
+  data        Json     // Grid data structure
+  formulas    Json?    // Formula definitions
+  styles      Json?    // Cell styles
+  
+  // Metadata
+  rowCount    Int      @default(100)
+  columnCount Int      @default(26)
+  
+  // Sharing
+  isPublic    Boolean  @default(false)
+  shareToken  String?  @unique
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Virtual filesystem
+  virtualPath String?  // e.g., "/sheets/budget.xlsx"
+  
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+// ==========================================
+// AGENT SYSTEM
+// ==========================================
+
+model Agent {
+  id          String   @id @default(cuid())
+  userId      String?  // null = system agent
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name        String
+  description String   @db.Text
+  category    String
+  
+  // Agent code/configuration
+  type        AgentType
+  runtime     AgentRuntime @default(NODEJS)
+  code        String?  @db.Text // For CODE type
+  imageUrl    String?  // For CONTAINER type
+  configUrl   String?  // For EXTERNAL type
+  
+  // Permissions
+  permissions String[] // ['read:notes', 'write:tasks', 'execute:commands']
+  
+  // Triggers
+  triggers    Json[]   // [{type: 'schedule', cron: '0 9 * * *'}, {type: 'webhook', url: '...'}]
+  
+  // Marketplace
+  isPublic    Boolean  @default(false)
+  isOfficial  Boolean  @default(false)
+  installCount Int     @default(0)
+  
+  // Metadata
+  version     String   @default("1.0.0")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  executions  AgentExecution[]
+  
+  @@index([userId])
+  @@index([category])
+  @@index([isPublic])
+}
+
+model AgentExecution {
+  id          String   @id @default(cuid())
+  agentId     String
+  agent       Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Execution details
+  status      ExecutionStatus @default(PENDING)
+  trigger     String?  // What triggered this execution
+  
+  // Input/Output
+  input       Json?
+  output      Json?
+  logs        String?  @db.Text
+  error       String?  @db.Text
+  
+  // Cloud Run details
+  cloudRunJobId String?
+  cloudRunUrl   String?
+  
+  // Timing
+  startedAt   DateTime?
+  completedAt DateTime?
+  duration    Int?     // milliseconds
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([agentId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum AgentType {
+  CODE       // Inline code
+  CONTAINER  // Docker container
+  EXTERNAL   // External API
+}
+
+enum AgentRuntime {
+  NODEJS
+  PYTHON
+  DENO
+  SHELL
+}
+
+enum ExecutionStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// ==========================================
+// INTEGRATIONS
+// ==========================================
+
+model Integration {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  provider    IntegrationProvider
+  
+  // OAuth tokens (encrypted)
+  accessToken  String  @db.Text
+  refreshToken String? @db.Text
+  expiresAt    DateTime?
+  
+  // Provider-specific data
+  accountId    String? // Provider's user ID
+  accountEmail String?
+  scopes       String[]
+  metadata     Json?   // Provider-specific metadata
+  
+  // Sync status
+  lastSyncedAt DateTime?
+  syncEnabled  Boolean @default(true)
+  syncError    String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, provider])
+  @@index([provider])
+}
+
+enum IntegrationProvider {
+  GOOGLE      // Gmail, Calendar, Drive
+  GITHUB
+  GITLAB
+  LINEAR
+  NOTION
+  SLACK
+  PLAID
+  ROBINHOOD
+  ALPACA
+  OPENAI
+  ANTHROPIC
+}
+
+// ==========================================
+// WORKSPACE & ACTIVITY
+// ==========================================
+
+model WorkspaceItem {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type        WorkspaceItemType
+  itemId      String   // ID of the actual item (noteId, taskId, etc.)
+  
+  // Quick access
+  isPinned    Boolean  @default(false)
+  isFavorite  Boolean  @default(false)
+  
+  // Positioning for dashboard
+  position    Int?
+  section     String?  // 'today', 'recent', 'favorites'
+  
+  lastAccessedAt DateTime @default(now())
+  accessCount    Int      @default(0)
+  
+  @@unique([userId, type, itemId])
+  @@index([userId, isPinned])
+  @@index([userId, lastAccessedAt])
+}
+
+enum WorkspaceItemType {
+  NOTE
+  TASK
+  EMAIL
+  FILE
+  SHEET
+  AGENT
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type        String   // 'note.created', 'task.completed', 'file.uploaded'
+  entityType  String   // 'note', 'task', 'file', etc.
+  entityId    String
+  
+  title       String
+  description String?
+  metadata    Json?
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId, createdAt])
+  @@index([entityType, entityId])
+}
+
+// ==========================================
+// EXISTING WORKSPACE TABLES (Terminal)
+// ==========================================
+
+model Workspace {
+  id               String   @id @default(cuid())
+  user_id          String
+  user             User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  workspace_id     String   @unique
+  hostname         String
+  machine_id       String
+  state            String
+  tier             String
+  
+  environment      Json     @default("{}")
+  storage          Json     @default("{}")
+  resources        Json?
+  ports            Json     @default("[]")
+  
+  ip_address       String?
+  dns_name         String?
+  service_url      String?
+  service_revision String?
+  
+  total_runtime_seconds Int      @default(0)
+  total_storage_bytes   BigInt   @default(0)
+  
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+  last_accessed_at DateTime?
+  suspended_at     DateTime?
+  
+  workspace_sessions WorkspaceSession[]
+  
+  @@index([user_id])
+  @@index([state])
+  @@index([tier])
+  @@index([last_accessed_at])
+  @@map("workspaces")
+}
+
+model WorkspaceSession {
+  id               String   @id @default(cuid())
+  workspace_id     String
+  workspaces       Workspace @relation(fields: [workspace_id], references: [workspace_id], onDelete: Cascade)
+  user_id          String
+  user             User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  session_token    String   @unique
+  
+  websocket_id     String?
+  terminal_pid     Int?
+  connection_ip    String?
+  user_agent       String?
+  
+  state            String
+  idle_since       DateTime?
+  
+  started_at       DateTime @default(now())
+  last_activity_at DateTime @default(now())
+  ended_at         DateTime?
+  
+  terminal_buffer  String?
+  environment_vars Json     @default("{}")
+  working_directory String  @default("/home/user")
+  
+  @@index([workspace_id])
+  @@index([user_id])
+  @@index([state])
+  @@index([last_activity_at])
+  @@map("workspace_sessions")
+}

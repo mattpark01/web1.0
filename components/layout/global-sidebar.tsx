@@ -121,7 +121,7 @@ export function GlobalSidebar() {
   const pathname = usePathname()
 
   return (
-    <div className="flex h-full w-12 flex-col border-r bg-muted/30">
+    <div className="flex h-full w-12 flex-col border-r border-border/40">
       <div className="flex flex-1 flex-col items-center gap-1 py-2">
         {sidebarItems.map((item) => {
           const isActive = pathname?.startsWith(item.href) || false

@@ -1,0 +1,103 @@
+/* Fortune Sheet Custom Styles */
+.fortune-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* Override Fortune Sheet dark theme */
+.luckysheet {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+.luckysheet-grid-window {
+  background-color: var(--background) !important;
+}
+
+.luckysheet-cell-main {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+.luckysheet-toolbar {
+  background-color: var(--background) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+.luckysheet-toolbar-button {
+  color: var(--foreground) !important;
+}
+
+.luckysheet-toolbar-button:hover {
+  background-color: var(--muted) !important;
+}
+
+.luckysheet-formula-bar {
+  background-color: var(--background) !important;
+  border-bottom: 1px solid var(--border) !important;
+  color: var(--foreground) !important;
+}
+
+.luckysheet-formula-bar input {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.luckysheet-sheet-tab {
+  background-color: var(--muted) !important;
+  color: var(--foreground) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.luckysheet-sheet-tab-active {
+  background-color: var(--background) !important;
+  border-bottom-color: var(--background) !important;
+}
+
+.luckysheet-cols-h-cells, 
+.luckysheet-rows-h-cells {
+  background-color: var(--muted) !important;
+  color: var(--muted-foreground) !important;
+  border-color: var(--border) !important;
+}
+
+.luckysheet-cell-selected {
+  border-color: rgb(59, 130, 246) !important;
+}
+
+.luckysheet-selection-copy {
+  border-color: rgb(34, 197, 94) !important;
+}
+
+/* Menu and dropdown styling */
+.luckysheet-toolbar-menu,
+.luckysheet-toolbar-submenu {
+  background-color: var(--popover) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--popover-foreground) !important;
+}
+
+.luckysheet-toolbar-menu-item:hover {
+  background-color: var(--muted) !important;
+}
+
+/* Scrollbar styling */
+.luckysheet ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.luckysheet ::-webkit-scrollbar-track {
+  background: var(--muted);
+}
+
+.luckysheet ::-webkit-scrollbar-thumb {
+  background: var(--muted-foreground);
+  border-radius: 5px;
+}
+
+.luckysheet ::-webkit-scrollbar-thumb:hover {
+  background: var(--foreground);
+}

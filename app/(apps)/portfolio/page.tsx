@@ -1,48 +1,31 @@
-import { TrendingUp, BarChart3, DollarSign, PieChart } from "lucide-react"
+"use client"
+
+import { TrendingUp, BarChart3, DollarSign } from "lucide-react"
+import { WalletConnectButton } from "@/components/wallet/wallet-connect-button"
+import { BrokerageConnect } from "@/components/wallet/brokerage-connect"
+import { UnifiedPortfolio } from "@/components/portfolio/unified-portfolio"
 
 export default function PortfolioPage() {
   return (
-    <div className="flex h-full">
-      {/* Sidebar */}
-      <div className="w-64 border-r bg-muted/20">
-        <div className="space-y-2 w-full p-4">
-          <div className="flex items-center gap-2  p-2 hover:bg-muted/50 cursor-pointer bg-muted/80">
-            <TrendingUp className="h-4 w-4" />
-            <span className="text-sm font-medium">Overview</span>
-          </div>
-          <div className="flex items-center gap-2  p-2 hover:bg-muted/50 cursor-pointer">
-            <PieChart className="h-4 w-4" />
-            <span className="text-sm">Allocations</span>
-          </div>
-          <div className="flex items-center gap-2  p-2 hover:bg-muted/50 cursor-pointer">
-            <BarChart3 className="h-4 w-4" />
-            <span className="text-sm">Performance</span>
-          </div>
-          <div className="flex items-center gap-2  p-2 hover:bg-muted/50 cursor-pointer">
-            <DollarSign className="h-4 w-4" />
-            <span className="text-sm">Holdings</span>
-          </div>
-        </div>
-      </div>
-
+    <div className="h-full">
       {/* Main content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex flex-col h-full">
         {/* Portfolio overview */}
         <div className="flex-1 overflow-auto">
           <div className="p-6 space-y-8">
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-bold">Portfolio Overview</h1>
-              <div className="text-right">
-                <div className="text-2xl font-bold">$124,567.89</div>
-                <div className="text-sm text-green-600 flex items-center gap-1">
-                  <TrendingUp className="h-3 w-3" />
-                  +2.34% ($2,891.23)
-                </div>
+              <div className="flex items-center gap-2">
+                <WalletConnectButton />
+                <BrokerageConnect />
               </div>
             </div>
 
-            {/* Portfolio cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Unified Portfolio Component */}
+            <UnifiedPortfolio />
+
+            {/* Legacy Portfolio cards - Hidden but kept for reference */}
+            <div className="hidden grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className=" border p-4">
                 <div className="flex items-center justify-between">
                   <div>

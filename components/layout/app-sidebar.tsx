@@ -20,14 +20,16 @@ interface AppSidebarProps {
 
 export function AppSidebar({ items, className }: AppSidebarProps) {
   return (
-    <div className={cn("w-64 border-r bg-muted/20", className)}>
+    <div className={cn("w-64 border-r border-border/50", className)}>
       <div className="space-y-2 w-full p-4">
         {items.map((item) => (
-          <Superellipse key={item.id} cornerRadius={4} cornerSmoothing={1}>
+          <Superellipse key={item.id} cornerRadius={8} cornerSmoothing={1}>
             <div
               className={cn(
-                "flex items-center gap-2 p-2 hover:bg-muted/50 cursor-pointer transition-colors",
-                item.isActive && "bg-muted/80"
+                "flex items-center gap-2 p-2 cursor-pointer transition-all",
+                item.isActive 
+                  ? "bg-muted/20" 
+                  : "bg-muted/5 hover:bg-muted/10"
               )}
               onClick={item.onClick}
             >
