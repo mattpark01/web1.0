@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Store,
   ShoppingCart,
@@ -39,357 +39,162 @@ import {
   Play,
   Settings,
   Trash2,
+  Loader2,
+  AlertCircle,
+  ExternalLink,
+  Key,
 } from "lucide-react";
 import { AppSidebar, type AppSidebarItem } from "@/components/layout/app-sidebar";
 import { Superellipse } from "@/components/ui/superellipse/superellipse";
 import { cn } from "@/lib/utils";
+import { useIntegrations } from "@/hooks/use-integrations";
+import { Integration, AppPlatform, agentRuntimeAPI } from "@/lib/agent-runtime-api";
 
-interface MCPServer {
-  id: string;
-  name: string;
-  description: string;
-  author: string;
-  category: string;
-  rating: number;
-  reviews: number;
-  icon: string;
-  installs: number;
-  badge?: string;
-  installed?: boolean;
-  version: string;
-  capabilities: string[];
-  compatibility: string[];
-  lastUpdated: string;
-  size: string;
-}
-
-const mcpServers: MCPServer[] = [
-  {
-    id: "1",
-    name: "GitHub MCP Server",
-    description: "Complete GitHub integration with repository management, issues, PRs, and Actions",
-    author: "Anthropic",
-    category: "development",
-    rating: 4.9,
-    reviews: 1324,
-    icon: "🐙",
-    installs: 45200,
-    badge: "Official",
-    version: "2.1.0",
-    capabilities: ["Repository Management", "Pull Requests", "Issues", "Actions", "Webhooks"],
-    compatibility: ["Claude", "GPT-4", "Gemini"],
-    lastUpdated: "2 days ago",
-    size: "12.4 MB",
-  },
-  {
-    id: "2",
-    name: "Filesystem Server",
-    description: "Advanced file system operations with secure sandboxing and permissions",
-    author: "Anthropic",
-    category: "core",
-    rating: 4.8,
-    reviews: 892,
-    icon: "📁",
-    installs: 38900,
-    badge: "Essential",
-    installed: true,
-    version: "1.5.3",
-    capabilities: ["Read/Write Files", "Directory Management", "File Search", "Permissions"],
-    compatibility: ["Claude", "GPT-4", "Gemini", "Llama"],
-    lastUpdated: "1 week ago",
-    size: "8.2 MB",
-  },
-  {
-    id: "3",
-    name: "PostgreSQL Server",
-    description: "Full PostgreSQL database access with query builder and schema management",
-    author: "Community",
-    category: "database",
-    rating: 4.7,
-    reviews: 456,
-    icon: "🐘",
-    installs: 23400,
-    version: "3.0.1",
-    capabilities: ["Query Execution", "Schema Management", "Migrations", "Backups"],
-    compatibility: ["Claude", "GPT-4"],
-    lastUpdated: "3 days ago",
-    size: "15.8 MB",
-  },
-  {
-    id: "4",
-    name: "Slack Integration",
-    description: "Send messages, manage channels, and interact with Slack workspaces",
-    author: "SlackHQ",
-    category: "communication",
-    rating: 4.6,
-    reviews: 203,
-    icon: "💬",
-    installs: 18700,
-    badge: "Verified",
-    version: "2.2.0",
-    capabilities: ["Send Messages", "Channel Management", "User Lookup", "File Sharing"],
-    compatibility: ["Claude", "GPT-4", "Gemini"],
-    lastUpdated: "5 days ago",
-    size: "9.6 MB",
-  },
-  {
-    id: "5",
-    name: "AWS Services",
-    description: "Comprehensive AWS integration with S3, Lambda, EC2, and more",
-    author: "AWS Team",
-    category: "cloud",
-    rating: 4.9,
-    reviews: 567,
-    icon: "☁️",
-    installs: 31200,
-    badge: "Premium",
-    version: "4.1.2",
-    capabilities: ["S3 Operations", "Lambda Functions", "EC2 Management", "CloudWatch"],
-    compatibility: ["Claude", "GPT-4"],
-    lastUpdated: "1 day ago",
-    size: "24.3 MB",
-  },
-  {
-    id: "6",
-    name: "Linear API",
-    description: "Create and manage Linear issues, projects, and workflows",
-    author: "Linear",
-    category: "productivity",
-    rating: 4.8,
-    reviews: 89,
-    icon: "📋",
-    installs: 12400,
-    badge: "New",
-    version: "1.0.0",
-    capabilities: ["Issue Creation", "Project Management", "Workflow Automation"],
-    compatibility: ["Claude"],
-    lastUpdated: "1 week ago",
-    size: "6.8 MB",
-  },
-  {
-    id: "7",
-    name: "Memory Server",
-    description: "Persistent memory and context management across conversations",
-    author: "Anthropic",
-    category: "core",
-    rating: 4.7,
-    reviews: 412,
-    icon: "🧠",
-    installs: 28300,
-    badge: "Essential",
-    version: "1.8.0",
-    capabilities: ["Context Storage", "Memory Retrieval", "Session Management"],
-    compatibility: ["Claude"],
-    lastUpdated: "4 days ago",
-    size: "5.2 MB",
-  },
-  {
-    id: "8",
-    name: "Code Interpreter",
-    description: "Execute Python, JavaScript, and other languages in sandboxed environments",
-    author: "Community",
-    category: "development",
-    rating: 4.8,
-    reviews: 734,
-    icon: "⚡",
-    installs: 35600,
-    badge: "Popular",
-    version: "2.5.1",
-    capabilities: ["Code Execution", "Package Management", "Output Streaming", "Debugging"],
-    compatibility: ["Claude", "GPT-4", "Gemini"],
-    lastUpdated: "6 days ago",
-    size: "18.9 MB",
-  },
-  {
-    id: "9",
-    name: "Brave Search",
-    description: "Web search integration with Brave's privacy-focused search engine",
-    author: "Brave",
-    category: "web",
-    rating: 4.5,
-    reviews: 234,
-    icon: "🔍",
-    installs: 14200,
-    version: "1.2.0",
-    capabilities: ["Web Search", "Image Search", "News", "Privacy Protection"],
-    compatibility: ["Claude", "GPT-4"],
-    lastUpdated: "2 weeks ago",
-    size: "4.6 MB",
-  },
-  {
-    id: "10",
-    name: "Docker Manager",
-    description: "Manage Docker containers, images, and compose configurations",
-    author: "Docker Inc",
-    category: "infrastructure",
-    rating: 4.6,
-    reviews: 156,
-    icon: "🐳",
-    installs: 19800,
-    badge: "Verified",
-    version: "3.1.0",
-    capabilities: ["Container Management", "Image Building", "Compose", "Registry Access"],
-    compatibility: ["Claude", "GPT-4"],
-    lastUpdated: "1 week ago",
-    size: "11.2 MB",
-  },
-  {
-    id: "11",
-    name: "Jira Integration",
-    description: "Complete Jira integration for issue tracking and project management",
-    author: "Atlassian",
-    category: "productivity",
-    rating: 4.4,
-    reviews: 432,
-    icon: "🎯",
-    installs: 21300,
-    badge: "Enterprise",
-    version: "2.8.3",
-    capabilities: ["Issue Management", "Sprint Planning", "Reports", "Automation"],
-    compatibility: ["Claude", "GPT-4"],
-    lastUpdated: "3 days ago",
-    size: "13.7 MB",
-  },
-  {
-    id: "12",
-    name: "Notion API",
-    description: "Read and write to Notion databases, pages, and workspaces",
-    author: "Notion",
-    category: "productivity",
-    rating: 4.7,
-    reviews: 278,
-    icon: "📝",
-    installs: 16900,
-    version: "2.0.1",
-    capabilities: ["Database Operations", "Page Creation", "Block Management", "Search"],
-    compatibility: ["Claude", "GPT-4", "Gemini"],
-    lastUpdated: "5 days ago",
-    size: "7.4 MB",
-  },
-];
 
 export default function StorePage() {
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedPlatform, setSelectedPlatform] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [sortBy, setSortBy] = useState("popular");
-  const [selectedServer, setSelectedServer] = useState<MCPServer | null>(null);
+  const [sortBy, setSortBy] = useState<"popular" | "rating" | "newest" | "name">("popular");
+  const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null);
+  const [platforms, setPlatforms] = useState<AppPlatform[]>([]);
+  const [installingId, setInstallingId] = useState<string | null>(null);
+  const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
+  const [apiKeyIntegrationId, setApiKeyIntegrationId] = useState<string | null>(null);
+  const [apiKey, setApiKey] = useState("");
 
-  const categories: AppSidebarItem[] = [
+  // Fetch integrations with filters
+  const { 
+    integrations, 
+    loading, 
+    error, 
+    installIntegration, 
+    uninstallIntegration,
+    toggleFavorite 
+  } = useIntegrations({
+    platform: selectedPlatform !== "all" ? selectedPlatform : undefined,
+    category: selectedCategory !== "all" ? selectedCategory : undefined,
+    searchTerm: searchQuery || undefined,
+    sortBy: sortBy,
+  });
+
+  // Fetch platforms on mount
+  useEffect(() => {
+    const fetchPlatforms = async () => {
+      try {
+        const data = await agentRuntimeAPI.getPlatforms();
+        setPlatforms(data);
+      } catch (err) {
+        console.error("Failed to fetch platforms:", err);
+      }
+    };
+    fetchPlatforms();
+  }, []);
+
+  const handleInstall = async (integration: Integration) => {
+    setInstallingId(integration.id);
+    try {
+      const response = await installIntegration(integration.id);
+      
+      if (response.requiresApiKey) {
+        setApiKeyIntegrationId(integration.id);
+        setApiKeyModalOpen(true);
+      } else if (response.authUrl) {
+        // OAuth flow handled in hook
+      }
+    } catch (err) {
+      console.error("Installation failed:", err);
+    } finally {
+      setInstallingId(null);
+    }
+  };
+
+  const handleApiKeySubmit = async () => {
+    if (!apiKeyIntegrationId || !apiKey) return;
+    
+    try {
+      await agentRuntimeAPI.provideApiKey(apiKeyIntegrationId, apiKey);
+      setApiKeyModalOpen(false);
+      setApiKey("");
+      setApiKeyIntegrationId(null);
+    } catch (err) {
+      console.error("Failed to configure API key:", err);
+    }
+  };
+
+  // Get unique categories from integrations
+  const categories = Array.from(new Set(integrations.map(i => i.category)));
+  
+  const sidebarItems: AppSidebarItem[] = [
     {
       id: "all",
-      label: "All Servers",
+      label: "All Integrations",
       icon: Server,
-      count: mcpServers.length,
-      isActive: selectedCategory === "all",
-      onClick: () => setSelectedCategory("all"),
+      count: integrations.length,
+      isActive: selectedPlatform === "all",
+      onClick: () => setSelectedPlatform("all"),
     },
-    {
-      id: "core",
-      label: "Core",
-      icon: Cpu,
-      count: mcpServers.filter((s) => s.category === "core").length,
-      isActive: selectedCategory === "core",
-      onClick: () => setSelectedCategory("core"),
-    },
-    {
-      id: "development",
-      label: "Development",
-      icon: Code,
-      count: mcpServers.filter((s) => s.category === "development").length,
-      isActive: selectedCategory === "development",
-      onClick: () => setSelectedCategory("development"),
-    },
-    {
-      id: "database",
-      label: "Database",
-      icon: Database,
-      count: mcpServers.filter((s) => s.category === "database").length,
-      isActive: selectedCategory === "database",
-      onClick: () => setSelectedCategory("database"),
-    },
-    {
-      id: "productivity",
-      label: "Productivity",
-      icon: Zap,
-      count: mcpServers.filter((s) => s.category === "productivity").length,
-      isActive: selectedCategory === "productivity",
-      onClick: () => setSelectedCategory("productivity"),
-    },
-    {
-      id: "cloud",
-      label: "Cloud",
-      icon: Cloud,
-      count: mcpServers.filter((s) => s.category === "cloud").length,
-      isActive: selectedCategory === "cloud",
-      onClick: () => setSelectedCategory("cloud"),
-    },
-    {
-      id: "communication",
-      label: "Communication",
-      icon: Network,
-      count: mcpServers.filter((s) => s.category === "communication").length,
-      isActive: selectedCategory === "communication",
-      onClick: () => setSelectedCategory("communication"),
-    },
-    {
-      id: "infrastructure",
-      label: "Infrastructure",
-      icon: Layers,
-      count: mcpServers.filter((s) => s.category === "infrastructure").length,
-      isActive: selectedCategory === "infrastructure",
-      onClick: () => setSelectedCategory("infrastructure"),
-    },
-    {
-      id: "web",
-      label: "Web & Search",
-      icon: Globe,
-      count: mcpServers.filter((s) => s.category === "web").length,
-      isActive: selectedCategory === "web",
-      onClick: () => setSelectedCategory("web"),
-    },
+    ...platforms.map(platform => ({
+      id: platform.id,
+      label: platform.name,
+      icon: getPlatformIcon(platform.id),
+      count: integrations.filter(i => i.platformId === platform.id).length,
+      isActive: selectedPlatform === platform.id,
+      onClick: () => setSelectedPlatform(platform.id),
+    })),
   ];
 
-  const filteredServers = mcpServers.filter((server) => {
-    const matchesCategory =
-      selectedCategory === "all" || server.category === selectedCategory;
-    const matchesSearch =
-      searchQuery === "" ||
-      server.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      server.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      server.author.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  // Helper function to get platform icon
+  function getPlatformIcon(platformId: string) {
+    const iconMap: Record<string, any> = {
+      bank: Zap,
+      tasks: Package,
+      calendar: Activity,
+      messages: Network,
+      portfolio: TrendingUp,
+      docs: FileCode,
+      code: Code,
+      quant: Brain,
+      sheets: Database,
+      store: Store,
+    };
+    return iconMap[platformId] || Server;
+  }
 
-  const sortedServers = [...filteredServers].sort((a, b) => {
-    switch (sortBy) {
-      case "newest":
-        return 0;
-      case "rating":
-        return b.rating - a.rating;
-      case "popular":
+  // Helper function to get badge color
+  function getBadgeColor(status: string) {
+    switch (status) {
+      case "beta":
+        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
+      case "deprecated":
+        return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
       default:
-        return b.installs - a.installs;
+        return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
     }
-  });
+  }
 
   return (
     <div className="flex h-full">
-      {/* <AppSidebar items={categories} /> */}
+      <AppSidebar items={sidebarItems} />
 
       <div className="flex-1 flex flex-col">
         <div className="border-b p-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold">MCP Server Store</h1>
-              <span className="text-sm text-muted-foreground">
-                {sortedServers.length} servers available
-              </span>
+              <h1 className="text-2xl font-bold">Integration Marketplace</h1>
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <span className="text-sm text-muted-foreground">
+                  {integrations.length} integrations available
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <button className="px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary text-sm rounded-lg transition-colors flex items-center gap-2">
-                <Terminal className="h-4 w-4" />
-                Configure MCP
+                <Settings className="h-4 w-4" />
+                Manage Installations
               </button>
             </div>
           </div>
@@ -399,7 +204,7 @@ export default function StorePage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search MCP servers..."
+                placeholder="Search integrations..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-muted/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -440,64 +245,77 @@ export default function StorePage() {
         </div>
 
         <div className="flex-1 overflow-auto p-4">
-          {viewMode === "grid" ? (
+          {error && (
+            <div className="flex items-center gap-2 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <span className="text-sm">{error}</span>
+            </div>
+          )}
+
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : viewMode === "grid" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {sortedServers.map((server) => (
-                <Superellipse key={server.id} cornerRadius={12} cornerSmoothing={1}>
+              {integrations.map((integration) => (
+                <Superellipse key={integration.id} cornerRadius={12} cornerSmoothing={1}>
                   <div 
                     className="p-4 bg-muted/10 hover:bg-muted/20 transition-all cursor-pointer"
-                    onClick={() => setSelectedServer(server)}
+                    onClick={() => setSelectedIntegration(integration)}
                   >
                     <div className="flex items-start justify-between mb-3">
-                      <div className="text-4xl">{server.icon}</div>
-                      {server.badge && (
-                        <span
-                          className={cn(
-                            "text-xs px-2 py-1 rounded-full",
-                            server.badge === "Official"
-                              ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
-                              : server.badge === "Essential"
-                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                              : server.badge === "Popular"
-                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                              : server.badge === "New"
-                              ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                              : server.badge === "Premium"
-                              ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400"
-                              : server.badge === "Verified"
-                              ? "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400"
-                              : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
-                          )}
-                        >
-                          {server.badge}
-                        </span>
-                      )}
+                      <div className="text-4xl">{integration.icon}</div>
+                      <div className="flex items-center gap-1">
+                        {integration.isFavorite && (
+                          <Heart className="h-3 w-3 fill-red-500 text-red-500" />
+                        )}
+                        {integration.status !== "available" && (
+                          <span
+                            className={cn(
+                              "text-xs px-2 py-1 rounded-full",
+                              getBadgeColor(integration.status)
+                            )}
+                          >
+                            {integration.status}
+                          </span>
+                        )}
+                        {integration.pricingType !== "free" && (
+                          <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                            {integration.pricingType}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    <h3 className="font-semibold text-sm mb-1">{server.name}</h3>
-                    <p className="text-xs text-muted-foreground mb-2">by {server.author}</p>
+                    <h3 className="font-semibold text-sm mb-1">{integration.name}</h3>
+                    <p className="text-xs text-muted-foreground mb-2">by {integration.provider}</p>
                     <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
-                      {server.description}
+                      {integration.description}
                     </p>
 
                     <div className="flex items-center gap-2 mb-3">
-                      <div className="flex items-center gap-1">
-                        <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                        <span className="text-xs font-medium">{server.rating}</span>
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        ({server.reviews})
-                      </span>
+                      {integration.averageRating && (
+                        <>
+                          <div className="flex items-center gap-1">
+                            <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                            <span className="text-xs font-medium">{integration.averageRating.toFixed(1)}</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            ({integration.reviewCount})
+                          </span>
+                        </>
+                      )}
                       <span className="text-xs text-muted-foreground ml-auto">
-                        {server.installs.toLocaleString()} installs
+                        {integration.installCount.toLocaleString()} installs
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">
-                        v{server.version}
+                        v{integration.version}
                       </span>
-                      {server.installed ? (
+                      {integration.isInstalled ? (
                         <button
                           disabled
                           className="px-3 py-1.5 bg-muted/20 text-muted-foreground text-xs rounded-lg flex items-center gap-1"
@@ -509,10 +327,18 @@ export default function StorePage() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            handleInstall(integration);
                           }}
-                          className="px-3 py-1.5 text-xs rounded-lg transition-colors flex items-center gap-1 bg-primary/10 hover:bg-primary/20 text-primary"
+                          disabled={installingId === integration.id}
+                          className="px-3 py-1.5 text-xs rounded-lg transition-colors flex items-center gap-1 bg-primary/10 hover:bg-primary/20 text-primary disabled:opacity-50"
                         >
-                          <Download className="h-3 w-3" />
+                          {installingId === integration.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : integration.authType === "api_key" ? (
+                            <Key className="h-3 w-3" />
+                          ) : (
+                            <Download className="h-3 w-3" />
+                          )}
                           Install
                         </button>
                       )}
@@ -523,76 +349,78 @@ export default function StorePage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {sortedServers.map((server) => (
-                <Superellipse key={server.id} cornerRadius={12} cornerSmoothing={1}>
+              {integrations.map((integration) => (
+                <Superellipse key={integration.id} cornerRadius={12} cornerSmoothing={1}>
                   <div 
                     className="p-4 bg-muted/10 hover:bg-muted/20 transition-all cursor-pointer"
-                    onClick={() => setSelectedServer(server)}
+                    onClick={() => setSelectedIntegration(integration)}
                   >
                     <div className="flex items-center gap-4">
-                      <div className="text-3xl">{server.icon}</div>
+                      <div className="text-3xl">{integration.icon}</div>
                       <div className="flex-1">
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <h3 className="font-semibold text-sm mb-1">
-                              {server.name}
+                              {integration.name}
                             </h3>
                             <p className="text-xs text-muted-foreground mb-1">
-                              by {server.author}
+                              by {integration.provider}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {server.description}
+                              {integration.description}
                             </p>
                           </div>
-                          {server.badge && (
-                            <span
-                              className={cn(
-                                "text-xs px-2 py-1 rounded-full ml-4",
-                                server.badge === "Official"
-                                  ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
-                                  : server.badge === "Essential"
-                                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                                  : server.badge === "Popular"
-                                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                  : server.badge === "New"
-                                  ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                                  : server.badge === "Premium"
-                                  ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400"
-                                  : server.badge === "Verified"
-                                  ? "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400"
-                                  : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
-                              )}
-                            >
-                              {server.badge}
-                            </span>
-                          )}
+                          <div className="flex items-center gap-1">
+                            {integration.isFavorite && (
+                              <Heart className="h-3 w-3 fill-red-500 text-red-500" />
+                            )}
+                            {integration.status !== "available" && (
+                              <span
+                                className={cn(
+                                  "text-xs px-2 py-1 rounded-full",
+                                  getBadgeColor(integration.status)
+                                )}
+                              >
+                                {integration.status}
+                              </span>
+                            )}
+                            {integration.pricingType !== "free" && (
+                              <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                                {integration.pricingType}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-1">
-                            <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                            <span className="text-xs font-medium">
-                              {server.rating}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              ({server.reviews})
-                            </span>
-                          </div>
+                          {integration.averageRating && (
+                            <div className="flex items-center gap-1">
+                              <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                              <span className="text-xs font-medium">
+                                {integration.averageRating.toFixed(1)}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                ({integration.reviewCount})
+                              </span>
+                            </div>
+                          )}
                           <div className="flex items-center gap-1">
                             <Download className="h-3 w-3 text-muted-foreground" />
                             <span className="text-xs text-muted-foreground">
-                              {server.installs.toLocaleString()} installs
+                              {integration.installCount.toLocaleString()} installs
                             </span>
                           </div>
                           <span className="text-xs text-muted-foreground">
-                            v{server.version}
+                            v{integration.version}
                           </span>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-xs text-muted-foreground">
-                          {server.size}
-                        </span>
-                        {server.installed ? (
+                        {integration.tags.slice(0, 2).map(tag => (
+                          <span key={tag} className="text-xs text-muted-foreground bg-muted/20 px-2 py-1 rounded">
+                            {tag}
+                          </span>
+                        ))}
+                        {integration.isInstalled ? (
                           <button
                             disabled
                             className="px-4 py-2 bg-muted/20 text-muted-foreground text-sm rounded-lg flex items-center gap-1"
@@ -604,10 +432,18 @@ export default function StorePage() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
+                              handleInstall(integration);
                             }}
-                            className="px-4 py-2 text-sm rounded-lg transition-colors flex items-center gap-1 bg-primary/10 hover:bg-primary/20 text-primary"
+                            disabled={installingId === integration.id}
+                            className="px-4 py-2 text-sm rounded-lg transition-colors flex items-center gap-1 bg-primary/10 hover:bg-primary/20 text-primary disabled:opacity-50"
                           >
-                            <Download className="h-4 w-4" />
+                            {installingId === integration.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : integration.authType === "api_key" ? (
+                              <Key className="h-4 w-4" />
+                            ) : (
+                              <Download className="h-4 w-4" />
+                            )}
                             Install
                           </button>
                         )}
@@ -621,16 +457,16 @@ export default function StorePage() {
         </div>
       </div>
 
-      {selectedServer && (
+      {selectedIntegration && (
         <div className="w-96 border-l flex flex-col">
           <div className="p-4 border-b">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-2xl">{selectedServer.icon}</span>
-                <h2 className="font-semibold">{selectedServer.name}</h2>
+                <span className="text-2xl">{selectedIntegration.icon}</span>
+                <h2 className="font-semibold">{selectedIntegration.name}</h2>
               </div>
               <button
-                onClick={() => setSelectedServer(null)}
+                onClick={() => setSelectedIntegration(null)}
                 className="p-1 hover:bg-muted/50 rounded transition-colors"
               >
                 <X className="h-4 w-4" />
@@ -640,40 +476,52 @@ export default function StorePage() {
 
           <div className="flex-1 overflow-auto p-4 space-y-4">
             <div>
-              <p className="text-sm text-muted-foreground mb-1">by {selectedServer.author}</p>
-              <p className="text-sm">{selectedServer.description}</p>
+              <p className="text-sm text-muted-foreground mb-1">by {selectedIntegration.provider}</p>
+              <p className="text-sm">{selectedIntegration.description}</p>
             </div>
 
             <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-1">
-                <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
-                <span className="font-medium">{selectedServer.rating}</span>
-                <span className="text-muted-foreground">({selectedServer.reviews})</span>
-              </div>
+              {selectedIntegration.averageRating && (
+                <div className="flex items-center gap-1">
+                  <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
+                  <span className="font-medium">{selectedIntegration.averageRating.toFixed(1)}</span>
+                  <span className="text-muted-foreground">({selectedIntegration.reviewCount})</span>
+                </div>
+              )}
               <span className="text-muted-foreground">
-                {selectedServer.installs.toLocaleString()} installs
+                {selectedIntegration.installCount.toLocaleString()} installs
               </span>
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Version</span>
-                <span className="font-medium">{selectedServer.version}</span>
+                <span className="font-medium">{selectedIntegration.version}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Size</span>
-                <span className="font-medium">{selectedServer.size}</span>
+                <span className="text-muted-foreground">Auth Type</span>
+                <span className="font-medium capitalize">{selectedIntegration.authType.replace('_', ' ')}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Pricing</span>
+                <span className="font-medium capitalize">{selectedIntegration.pricingType}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Updated</span>
-                <span className="font-medium">{selectedServer.lastUpdated}</span>
+                <span className="font-medium">{selectedIntegration.lastUpdated}</span>
               </div>
             </div>
+
+            {selectedIntegration.pricingDetails && (
+              <div className="p-3 bg-muted/10 rounded-lg">
+                <p className="text-xs">{selectedIntegration.pricingDetails}</p>
+              </div>
+            )}
 
             <div>
               <h3 className="text-sm font-semibold mb-2">Capabilities</h3>
               <div className="flex flex-wrap gap-1">
-                {selectedServer.capabilities.map((cap, i) => (
+                {selectedIntegration.capabilities.map((cap, i) => (
                   <span
                     key={i}
                     className="text-xs px-2 py-1 bg-muted/10 rounded-md"
@@ -685,69 +533,147 @@ export default function StorePage() {
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold mb-2">Compatible With</h3>
+              <h3 className="text-sm font-semibold mb-2">Tags</h3>
               <div className="flex flex-wrap gap-1">
-                {selectedServer.compatibility.map((compat, i) => (
+                {selectedIntegration.tags.map((tag, i) => (
                   <span
                     key={i}
                     className="text-xs px-2 py-1 bg-muted/10 rounded-md"
                   >
-                    {compat}
+                    {tag}
                   </span>
                 ))}
               </div>
             </div>
 
-            {selectedServer.badge && (
-              <div className="p-3 bg-muted/10 rounded-lg">
-                <span
-                  className={cn(
-                    "text-xs px-2 py-1 rounded-full",
-                    selectedServer.badge === "Official"
-                      ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
-                      : selectedServer.badge === "Essential"
-                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                      : selectedServer.badge === "Popular"
-                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                      : selectedServer.badge === "New"
-                      ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                      : selectedServer.badge === "Premium"
-                      ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400"
-                      : selectedServer.badge === "Verified"
-                      ? "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400"
-                      : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
-                  )}
-                >
-                  {selectedServer.badge}
-                </span>
+            {(selectedIntegration.documentationUrl || selectedIntegration.websiteUrl || selectedIntegration.supportUrl) && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold mb-2">Resources</h3>
+                {selectedIntegration.documentationUrl && (
+                  <a
+                    href={selectedIntegration.documentationUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-xs text-primary hover:underline"
+                  >
+                    <FileCode className="h-3 w-3" />
+                    Documentation
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+                {selectedIntegration.websiteUrl && (
+                  <a
+                    href={selectedIntegration.websiteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-xs text-primary hover:underline"
+                  >
+                    <Globe className="h-3 w-3" />
+                    Website
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+                {selectedIntegration.supportUrl && (
+                  <a
+                    href={selectedIntegration.supportUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-xs text-primary hover:underline"
+                  >
+                    <Heart className="h-3 w-3" />
+                    Support
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
               </div>
             )}
           </div>
 
           <div className="border-t p-4 space-y-3">
-            {selectedServer.installed ? (
+            {selectedIntegration.isInstalled ? (
               <>
-                <button className="w-full py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-colors flex items-center justify-center gap-2">
+                <button 
+                  onClick={() => uninstallIntegration(selectedIntegration.id)}
+                  className="w-full py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
                   <Trash2 className="h-4 w-4" />
                   Uninstall
                 </button>
-                <button className="w-full py-2 bg-muted/10 hover:bg-muted/20 text-foreground rounded-lg transition-colors flex items-center justify-center gap-2">
-                  <Settings className="h-4 w-4" />
-                  Configure
+                <button 
+                  onClick={() => toggleFavorite(selectedIntegration.id)}
+                  className="w-full py-2 bg-muted/10 hover:bg-muted/20 text-foreground rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <Heart className={cn("h-4 w-4", selectedIntegration.isFavorite && "fill-current")} />
+                  {selectedIntegration.isFavorite ? "Remove from Favorites" : "Add to Favorites"}
                 </button>
               </>
             ) : (
               <>
-                <button className="w-full py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-colors flex items-center justify-center gap-2">
-                  <Download className="h-4 w-4" />
-                  Install Server
+                <button 
+                  onClick={() => handleInstall(selectedIntegration)}
+                  disabled={installingId === selectedIntegration.id}
+                  className="w-full py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {installingId === selectedIntegration.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : selectedIntegration.authType === "api_key" ? (
+                    <Key className="h-4 w-4" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  Install Integration
                 </button>
-                <button className="w-full py-2 bg-muted/10 hover:bg-muted/20 text-foreground rounded-lg transition-colors flex items-center justify-center gap-2">
-                  <FileCode className="h-4 w-4" />
-                  View Documentation
-                </button>
+                {selectedIntegration.documentationUrl && (
+                  <a
+                    href={selectedIntegration.documentationUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2 bg-muted/10 hover:bg-muted/20 text-foreground rounded-lg transition-colors flex items-center justify-center gap-2"
+                  >
+                    <FileCode className="h-4 w-4" />
+                    View Documentation
+                  </a>
+                )}
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* API Key Modal */}
+      {apiKeyModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background border rounded-lg p-6 w-96">
+            <h3 className="text-lg font-semibold mb-4">API Key Required</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              This integration requires an API key to connect. Please enter your API key below.
+            </p>
+            <input
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="Enter your API key"
+              className="w-full px-3 py-2 bg-muted/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 mb-4"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setApiKeyModalOpen(false);
+                  setApiKey("");
+                  setApiKeyIntegrationId(null);
+                }}
+                className="flex-1 py-2 bg-muted/10 hover:bg-muted/20 text-foreground rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleApiKeySubmit}
+                disabled={!apiKey}
+                className="flex-1 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-colors disabled:opacity-50"
+              >
+                Connect
+              </button>
+            </div>
           </div>
         </div>
       )}
