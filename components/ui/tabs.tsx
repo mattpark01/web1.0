@@ -4,6 +4,7 @@ import * as React from "react"
 import * as TabsPrimitive from "@radix-ui/react-tabs"
 
 import { cn } from "@/lib/utils"
+import { Superellipse } from "@/components/ui/superellipse/superellipse"
 
 function Tabs({
   className,
@@ -22,33 +23,53 @@ function TabsList({
   className,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.List>) {
+  // p-1 = 0.25rem = 4px padding
+  const outerRadius = 8
+  const padding = 4 // 1 * 0.25rem
+  const innerRadius = Math.max(0, outerRadius - padding)
+  
   return (
-    <TabsPrimitive.List
-      data-slot="tabs-list"
-      className={cn(
-        "bg-muted text-muted-foreground inline-flex h-9 w-fit items-center justify-center  p-[3px]",
-        className
-      )}
-      {...props}
-    />
+    <Superellipse cornerRadius={outerRadius} cornerSmoothing={1} className={cn("bg-muted p-1 inline-flex w-fit", className)}>
+      <TabsPrimitive.List
+        data-slot="tabs-list"
+        className="bg-transparent text-muted-foreground inline-flex h-auto w-fit items-center justify-center"
+        {...props}
+      />
+    </Superellipse>
   )
 }
 
-function TabsTrigger({
-  className,
-  ...props
-}: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
+const TabsTrigger = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
+>(({ className, children, ...props }, ref) => {
+  // TabsList has p-1 (4px padding), so inner items should have radius = outer - padding
+  const outerRadius = 8
+  const padding = 4 // 1 * 0.25rem
+  const innerRadius = Math.max(0, outerRadius - padding) // 4px
+  
   return (
     <TabsPrimitive.Trigger
+      ref={ref}
       data-slot="tabs-trigger"
       className={cn(
-        "data-[state=active]:bg-background dark:data-[state=active]:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 text-foreground dark:text-muted-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5  border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:shadow-sm [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "group relative data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground inline-flex h-full flex-1 items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium whitespace-nowrap disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}
-    />
+    >
+      <span className="absolute inset-0 opacity-0 group-data-[state=active]:opacity-100">
+        <Superellipse 
+          cornerRadius={innerRadius} 
+          cornerSmoothing={1} 
+          className="absolute inset-0 bg-background" 
+        />
+      </span>
+      <span className="relative z-10">{children}</span>
+    </TabsPrimitive.Trigger>
   )
-}
+})
+TabsTrigger.displayName = TabsPrimitive.Trigger.displayName
 
 function TabsContent({
   className,

@@ -19,7 +19,7 @@ const plaidClient = new PlaidApi(configuration)
 
 export async function POST(request: Request) {
   try {
-    const { public_token, metadata } = await request.json()
+    const { public_token, metadata, isInvestment } = await request.json()
     
     // For now, use a default user ID - you should get this from session
     const userId = 'default-user' // Replace with actual user authentication
@@ -71,18 +71,32 @@ export async function POST(request: Request) {
       })
     }
 
-    // Fetch initial transactions
+    // If this is an investment account, fetch holdings instead of transactions
+    if (isInvestment) {
+      try {
+        const holdingsResponse = await plaidClient.investmentsHoldingsGet({
+          access_token,
+        })
+        
+        console.log(`Fetched ${holdingsResponse.data.holdings.length} holdings for investment account`)
+      } catch (holdingsError) {
+        console.log('Could not fetch investment holdings:', holdingsError)
+      }
+    }
+    
+    // Fetch initial transactions (for non-investment accounts)
     const now = new Date()
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
     
-    try {
-      const transactionsResponse = await plaidClient.transactionsGet({
-        access_token,
-        start_date: thirtyDaysAgo.toISOString().split('T')[0],
-        end_date: now.toISOString().split('T')[0],
-      })
+    if (!isInvestment) {
+      try {
+        const transactionsResponse = await plaidClient.transactionsGet({
+          access_token,
+          start_date: thirtyDaysAgo.toISOString().split('T')[0],
+          end_date: now.toISOString().split('T')[0],
+        })
 
-      const transactions = transactionsResponse.data.transactions
+        const transactions = transactionsResponse.data.transactions
 
       // Store transactions
       for (const transaction of transactions) {
@@ -116,8 +130,9 @@ export async function POST(request: Request) {
           })
         }
       }
-    } catch (txError) {
-      console.log('Could not fetch initial transactions:', txError)
+      } catch (txError) {
+        console.log('Could not fetch initial transactions:', txError)
+      }
     }
 
     return NextResponse.json({ 

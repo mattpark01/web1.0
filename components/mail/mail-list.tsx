@@ -2,6 +2,7 @@
 
 import { Star, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useEffect, useRef } from "react";
 
 export interface MailItem {
   id: string;
@@ -26,8 +27,21 @@ interface MailListProps {
 }
 
 export function MailList({ mails, selectedMailId, onSelectMail }: MailListProps) {
+  const itemRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Scroll selected item into view
+  useEffect(() => {
+    if (selectedMailId && itemRefs.current[selectedMailId]) {
+      itemRefs.current[selectedMailId]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest'
+      });
+    }
+  }, [selectedMailId]);
+
   return (
-    <div className="flex-1 overflow-auto border-r border-border bg-background/50">
+    <div ref={containerRef} className="flex-1 overflow-auto border-r border-border bg-background/50">
       {mails.length === 0 ? (
         <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
           No emails in this folder
@@ -36,10 +50,11 @@ export function MailList({ mails, selectedMailId, onSelectMail }: MailListProps)
         mails.map((mail) => (
           <div
             key={mail.id}
+            ref={(el) => { itemRefs.current[mail.id] = el; }}
             onClick={() => onSelectMail(mail)}
             className={cn(
-              "p-4 hover:bg-muted/30 cursor-pointer border-b border-border transition-all duration-200",
-              selectedMailId === mail.id && "bg-muted/50 border-l-4 border-l-primary shadow-sm",
+              "p-4 hover:bg-muted/30 cursor-pointer border-b border-l-4 border-border",
+              selectedMailId === mail.id ? "bg-muted/50 border-l-primary shadow-sm" : "border-l-transparent",
               !mail.isRead && "bg-background font-medium"
             )}
           >

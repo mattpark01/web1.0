@@ -9,6 +9,7 @@ import { usePlaidAccounts } from "@/hooks/use-plaid-accounts"
 import { usePlaidTransactions } from "@/hooks/use-plaid-transactions"
 import { formatCurrency, formatAccountNumber, formatDate } from "@/lib/utils/format"
 import { getAccountIcon, getAccountColor, getAccountTextColor, getTransactionIcon, getTransactionColor, getTransactionIconColor } from "@/lib/utils/bank-icons"
+import { Superellipse } from "@/components/ui/superellipse/superellipse"
 // import { AppSidebar, type AppSidebarItem } from "@/components/layout/app-sidebar"
 
 export default function BankPage() {
@@ -95,9 +96,10 @@ export default function BankPage() {
                   const AccountIcon = getAccountIcon(account.type, account.subtype)
                   
                   return (
-                    <div 
+                    <Superellipse
                       key={account.account_id}
-                      className="border rounded-lg p-6 hover:border-foreground/20 transition-all bg-background"
+                      cornerRadius={12}
+                      className="p-6 bg-muted/30 hover:bg-muted/50 transition-all"
                     >
                       <div className="flex items-center justify-between mb-4">
                         <div>
@@ -118,12 +120,12 @@ export default function BankPage() {
                           Available: {formatCurrency(account.balances.available)}
                         </p>
                       )}
-                    </div>
+                    </Superellipse>
                   )
                 })
               ) : (
                 <>
-                  <div className="border rounded-lg p-6 bg-background">
+                  <Superellipse cornerRadius={12} className="p-6 bg-muted/30">
                     <div className="flex items-center justify-between mb-4">
                       <div>
                         <p className="text-sm font-medium">Checking Account</p>
@@ -132,9 +134,9 @@ export default function BankPage() {
                       <CardIcon className="h-5 w-5 text-muted-foreground" />
                     </div>
                     <div className="text-2xl font-bold">{formatCurrency(8450.67)}</div>
-                  </div>
+                  </Superellipse>
 
-                  <div className="border rounded-lg p-6 bg-background">
+                  <Superellipse cornerRadius={12} className="p-6 bg-muted/30">
                     <div className="flex items-center justify-between mb-4">
                       <div>
                         <p className="text-sm font-medium">Savings Account</p>
@@ -143,48 +145,68 @@ export default function BankPage() {
                       <SaveIcon className="h-5 w-5 text-muted-foreground" />
                     </div>
                     <div className="text-2xl font-bold">{formatCurrency(36829.45)}</div>
-                  </div>
+                  </Superellipse>
                 </>
               )}
             </div>
 
             {/* Quick actions */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <button 
-                onClick={() => setShowSendMoney(true)}
-                className="border rounded-lg p-4 hover:bg-muted transition-colors group"
-                disabled={accounts.length === 0}
+              <Superellipse
+                cornerRadius={10}
+                asChild
               >
-                <Send className="h-5 w-5 mb-2 mx-auto text-muted-foreground group-hover:text-foreground transition-colors" />
-                <p className="text-sm">Send Money</p>
-              </button>
-              <button 
-                className="border rounded-lg p-4 hover:bg-muted transition-colors group"
-                disabled={accounts.length === 0}
+                <button 
+                  onClick={() => setShowSendMoney(true)}
+                  className="p-4 bg-muted/30 hover:bg-muted transition-colors group"
+                  disabled={accounts.length === 0}
+                >
+                  <Send className="h-5 w-5 mb-2 mx-auto text-muted-foreground group-hover:text-foreground transition-colors" />
+                  <p className="text-sm">Send Money</p>
+                </button>
+              </Superellipse>
+              <Superellipse
+                cornerRadius={10}
+                asChild
               >
-                <ArrowDownRight className="h-5 w-5 mb-2 mx-auto text-muted-foreground group-hover:text-foreground transition-colors" />
-                <p className="text-sm">Request</p>
-              </button>
-              <button 
-                className="border rounded-lg p-4 hover:bg-muted transition-colors group"
-                disabled={accounts.length === 0}
+                <button 
+                  className="p-4 bg-muted/30 hover:bg-muted transition-colors group"
+                  disabled={accounts.length === 0}
+                >
+                  <ArrowDownRight className="h-5 w-5 mb-2 mx-auto text-muted-foreground group-hover:text-foreground transition-colors" />
+                  <p className="text-sm">Request</p>
+                </button>
+              </Superellipse>
+              <Superellipse
+                cornerRadius={10}
+                asChild
               >
-                <Receipt className="h-5 w-5 mb-2 mx-auto text-muted-foreground group-hover:text-foreground transition-colors" />
-                <p className="text-sm">Pay Bills</p>
-              </button>
-              <button 
-                onClick={() => setShowTransfer(true)}
-                className="border rounded-lg p-4 hover:bg-muted transition-colors group"
-                disabled={accounts.length < 2}
+                <button 
+                  className="p-4 bg-muted/30 hover:bg-muted transition-colors group"
+                  disabled={accounts.length === 0}
+                >
+                  <Receipt className="h-5 w-5 mb-2 mx-auto text-muted-foreground group-hover:text-foreground transition-colors" />
+                  <p className="text-sm">Pay Bills</p>
+                </button>
+              </Superellipse>
+              <Superellipse
+                cornerRadius={10}
+                asChild
               >
-                <SaveIcon className="h-5 w-5 mb-2 mx-auto text-muted-foreground group-hover:text-foreground transition-colors" />
-                <p className="text-sm">Transfer</p>
-              </button>
+                <button 
+                  onClick={() => setShowTransfer(true)}
+                  className="p-4 bg-muted/30 hover:bg-muted transition-colors group"
+                  disabled={accounts.length < 2}
+                >
+                  <SaveIcon className="h-5 w-5 mb-2 mx-auto text-muted-foreground group-hover:text-foreground transition-colors" />
+                  <p className="text-sm">Transfer</p>
+                </button>
+              </Superellipse>
             </div>
 
             {/* Recent transactions */}
-            <div className="border rounded-lg">
-              <div className="p-4 border-b">
+            <Superellipse cornerRadius={12} className="bg-muted/20">
+              <div className="p-4 border-b border-border/50">
                 <h2 className="font-semibold">Recent Transactions</h2>
               </div>
               <div className="space-y-0">
@@ -204,9 +226,9 @@ export default function BankPage() {
                         className="flex items-center justify-between p-4 border-b hover:bg-muted/30 transition-colors"
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${bgColor}`}>
+                          <Superellipse cornerRadius={8} className={`w-10 h-10 flex items-center justify-center ${bgColor}`}>
                             <TransactionIcon className={`h-4 w-4 ${iconColor}`} />
-                          </div>
+                          </Superellipse>
                           <div>
                             <p className="font-medium">{transaction.name}</p>
                             <p className="text-sm text-muted-foreground flex items-center gap-1">
@@ -306,7 +328,7 @@ export default function BankPage() {
                   </>
                 )}
               </div>
-            </div>
+            </Superellipse>
           </div>
         </div>
       </div>

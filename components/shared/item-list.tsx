@@ -19,7 +19,7 @@ export interface ItemSection<T> {
 
 export interface ItemListProps<T> {
   sections: ItemSection<T>[]
-  renderItem: (item: T) => ReactNode
+  renderItem: (item: T, index: number) => ReactNode
   openSections?: string[]
   onSectionToggle?: (sections: string[]) => void
   onAddItem?: (sectionId: string) => void
@@ -73,7 +73,7 @@ export function ItemList<T>({
               <div className="space-y-0">
                 {section.items.map((item, index) => (
                   <div key={index}>
-                    {renderItem(item)}
+                    {renderItem(item, index)}
                   </div>
                 ))}
               </div>
@@ -109,6 +109,7 @@ export interface ListItemProps {
     tooltip?: string
   }
   onClick?: () => void
+  isSelected?: boolean
   className?: string
 }
 
@@ -123,12 +124,14 @@ export function ListItem({
   date,
   indicator,
   onClick,
+  isSelected = false,
   className = ""
 }: ListItemProps) {
   return (
     <div 
-      className={`flex items-center justify-between gap-3 py-2 px-6 hover:bg-muted/30 ${onClick ? 'cursor-pointer' : ''} ${className}`}
+      className={`flex items-center justify-between gap-3 py-2 px-6 hover:bg-muted/30 border-l-2 ${onClick ? 'cursor-pointer' : ''} ${isSelected ? 'bg-muted/50 border-primary' : 'border-transparent'} ${className}`}
       onClick={onClick}
+      data-task-id={id}
     >
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {(Icon || id) && (

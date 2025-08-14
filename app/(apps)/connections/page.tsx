@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   Store,
+  Link2,
   ShoppingCart,
   Search,
   Filter,
@@ -49,9 +50,14 @@ import { Superellipse } from "@/components/ui/superellipse/superellipse";
 import { cn } from "@/lib/utils";
 import { useIntegrations } from "@/hooks/use-integrations";
 import { Integration, AppPlatform, agentRuntimeAPI } from "@/lib/agent-runtime-api";
+import { IntegrationManager } from "@/components/connections/integration-manager";
+import { CachedImage } from "@/components/ui/cached-image";
+import { PermissionDisplay } from "@/components/connections/permission-display";
+import { PermissionConsentModal } from "@/components/connections/permission-consent-modal";
 
 
-export default function StorePage() {
+export default function ConnectionsPage() {
+  const [activeTab, setActiveTab] = useState<"marketplace" | "installed">("marketplace");
   const [selectedPlatform, setSelectedPlatform] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -63,6 +69,10 @@ export default function StorePage() {
   const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
   const [apiKeyIntegrationId, setApiKeyIntegrationId] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState("");
+  const [allIntegrations, setAllIntegrations] = useState<Integration[]>([]);
+  const [loadingCounts, setLoadingCounts] = useState(true);
+  const [permissionModalOpen, setPermissionModalOpen] = useState(false);
+  const [pendingInstallation, setPendingInstallation] = useState<Integration | null>(null);
 
   // Fetch integrations with filters
   const { 
@@ -79,26 +89,44 @@ export default function StorePage() {
     sortBy: sortBy,
   });
 
-  // Fetch platforms on mount
+  // Fetch platforms and all integrations for counts on mount
   useEffect(() => {
-    const fetchPlatforms = async () => {
+    const fetchData = async () => {
       try {
-        const data = await agentRuntimeAPI.getPlatforms();
-        setPlatforms(data);
+        setLoadingCounts(true);
+        const [platformsData, integrationsData] = await Promise.all([
+          agentRuntimeAPI.getPlatforms(),
+          agentRuntimeAPI.getIntegrations() // Fetch all integrations for counts
+        ]);
+        setPlatforms(platformsData);
+        setAllIntegrations(integrationsData);
+        console.log("Fetched all integrations:", integrationsData.length); // Debug log
       } catch (err) {
-        console.error("Failed to fetch platforms:", err);
+        console.error("Failed to fetch data:", err);
+      } finally {
+        setLoadingCounts(false);
       }
     };
-    fetchPlatforms();
+    fetchData();
   }, []);
 
   const handleInstall = async (integration: Integration) => {
-    setInstallingId(integration.id);
+    // Show permission consent modal first
+    setPendingInstallation(integration);
+    setPermissionModalOpen(true);
+  };
+
+  const handlePermissionConfirm = async () => {
+    if (!pendingInstallation) return;
+    
+    setPermissionModalOpen(false);
+    setInstallingId(pendingInstallation.id);
+    
     try {
-      const response = await installIntegration(integration.id);
+      const response = await installIntegration(pendingInstallation.id);
       
       if (response.requiresApiKey) {
-        setApiKeyIntegrationId(integration.id);
+        setApiKeyIntegrationId(pendingInstallation.id);
         setApiKeyModalOpen(true);
       } else if (response.authUrl) {
         // OAuth flow handled in hook
@@ -107,7 +135,13 @@ export default function StorePage() {
       console.error("Installation failed:", err);
     } finally {
       setInstallingId(null);
+      setPendingInstallation(null);
     }
+  };
+
+  const handlePermissionCancel = () => {
+    setPermissionModalOpen(false);
+    setPendingInstallation(null);
   };
 
   const handleApiKeySubmit = async () => {
@@ -131,7 +165,7 @@ export default function StorePage() {
       id: "all",
       label: "All Integrations",
       icon: Server,
-      count: integrations.length,
+      count: loadingCounts ? undefined : allIntegrations.length,
       isActive: selectedPlatform === "all",
       onClick: () => setSelectedPlatform("all"),
     },
@@ -139,7 +173,7 @@ export default function StorePage() {
       id: platform.id,
       label: platform.name,
       icon: getPlatformIcon(platform.id),
-      count: integrations.filter(i => i.platformId === platform.id).length,
+      count: loadingCounts ? undefined : allIntegrations.filter(i => i.platformId === platform.id).length,
       isActive: selectedPlatform === platform.id,
       onClick: () => setSelectedPlatform(platform.id),
     })),
@@ -157,7 +191,6 @@ export default function StorePage() {
       code: Code,
       quant: Brain,
       sheets: Database,
-      store: Store,
     };
     return iconMap[platformId] || Server;
   }
@@ -176,96 +209,150 @@ export default function StorePage() {
 
   return (
     <div className="flex h-full">
-      <AppSidebar items={sidebarItems} />
+      {activeTab === "marketplace" && (
+        <AppSidebar items={sidebarItems} />
+      )}
 
       <div className="flex-1 flex flex-col">
         <div className="border-b p-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold">Integration Marketplace</h1>
-              {loading ? (
+              <h1 className="text-2xl font-bold">
+                {activeTab === "marketplace" ? "Integration Marketplace" : "Your Connections"}
+              </h1>
+              {activeTab === "marketplace" && loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
+              ) : activeTab === "marketplace" ? (
                 <span className="text-sm text-muted-foreground">
                   {integrations.length} integrations available
                 </span>
-              )}
+              ) : null}
             </div>
             <div className="flex items-center gap-2">
-              <button className="px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary text-sm rounded-lg transition-colors flex items-center gap-2">
-                <Settings className="h-4 w-4" />
-                Manage Installations
-              </button>
+              <div className="flex bg-muted/10 rounded-lg p-1">
+                <button
+                  onClick={() => setActiveTab("marketplace")}
+                  className={cn(
+                    "px-4 py-2 text-sm rounded-md transition-colors flex items-center gap-2",
+                    activeTab === "marketplace"
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Store className="h-4 w-4" />
+                  Marketplace
+                </button>
+                <button
+                  onClick={() => setActiveTab("installed")}
+                  className={cn(
+                    "px-4 py-2 text-sm rounded-md transition-colors flex items-center gap-2",
+                    activeTab === "installed"
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Settings className="h-4 w-4" />
+                  Installed
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search integrations..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-muted/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
+          {activeTab === "marketplace" && (
+            <div className="flex items-center gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search integrations..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-muted/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
 
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 py-2 bg-muted/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
-            >
-              <option value="popular">Most Popular</option>
-              <option value="rating">Highest Rated</option>
-              <option value="newest">Newest</option>
-            </select>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="px-3 py-2 bg-muted/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                <option value="popular">Most Popular</option>
+                <option value="rating">Highest Rated</option>
+                <option value="newest">Newest</option>
+              </select>
 
-            <div className="flex items-center gap-1 bg-muted/10 rounded-lg p-1">
-              <button
-                onClick={() => setViewMode("grid")}
-                className={cn(
-                  "p-1.5 rounded transition-colors",
-                  viewMode === "grid" ? "bg-muted/30" : "hover:bg-muted/20"
-                )}
-              >
-                <Grid className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={cn(
-                  "p-1.5 rounded transition-colors",
-                  viewMode === "list" ? "bg-muted/30" : "hover:bg-muted/20"
-                )}
-              >
-                <List className="h-4 w-4" />
-              </button>
+              <div className="flex items-center gap-1 bg-muted/10 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={cn(
+                    "p-1.5 rounded transition-colors",
+                    viewMode === "grid" ? "bg-muted/30" : "hover:bg-muted/20"
+                  )}
+                >
+                  <Grid className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={cn(
+                    "p-1.5 rounded transition-colors",
+                    viewMode === "list" ? "bg-muted/30" : "hover:bg-muted/20"
+                  )}
+                >
+                  <List className="h-4 w-4" />
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-auto p-4">
-          {error && (
-            <div className="flex items-center gap-2 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg mb-4">
-              <AlertCircle className="h-4 w-4" />
-              <span className="text-sm">{error}</span>
-            </div>
-          )}
+          {activeTab === "installed" ? (
+            <IntegrationManager className="mt-4" />
+          ) : (
+            <>
+              {error && (
+                <div className="flex items-center gap-2 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <span className="text-sm">{error}</span>
+                </div>
+              )}
 
-          {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : viewMode === "grid" ? (
+              {loading ? (
+                <div className="flex items-center justify-center h-64">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : integrations.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-64 text-center">
+                  <Package className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No Integrations Available</h3>
+                  <p className="text-muted-foreground max-w-md">
+                    {selectedPlatform === "all" 
+                      ? "No integrations are currently available in the marketplace."
+                      : `No integrations are currently available for the ${
+                          platforms.find(p => p.id === selectedPlatform)?.name || selectedPlatform
+                        } platform.`}
+                  </p>
+                </div>
+              ) : viewMode === "grid" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {integrations.map((integration) => (
                 <Superellipse key={integration.id} cornerRadius={12} cornerSmoothing={1}>
                   <div 
-                    className="p-4 bg-muted/10 hover:bg-muted/20 transition-all cursor-pointer"
+                    className={cn(
+                      "p-4 bg-muted/10 hover:bg-muted/20 cursor-pointer",
+                      selectedIntegration?.id === integration.id && "bg-primary/10"
+                    )}
                     onClick={() => setSelectedIntegration(integration)}
                   >
                     <div className="flex items-start justify-between mb-3">
-                      <div className="text-4xl">{integration.icon}</div>
+                      <div className="text-4xl">
+                        <CachedImage
+                          src={integration.iconUrl}
+                          alt={integration.name}
+                          className="w-12 h-12 object-contain"
+                          fallback={<span>{integration.icon}</span>}
+                        />
+                      </div>
                       <div className="flex items-center gap-1">
                         {integration.isFavorite && (
                           <Heart className="h-3 w-3 fill-red-500 text-red-500" />
@@ -311,6 +398,15 @@ export default function StorePage() {
                       </span>
                     </div>
 
+                    {integration.permissions && integration.permissions.length > 0 && (
+                      <div className="mb-3">
+                        <PermissionDisplay
+                          permissions={integration.permissions}
+                          compact={true}
+                        />
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">
                         v{integration.version}
@@ -352,11 +448,21 @@ export default function StorePage() {
               {integrations.map((integration) => (
                 <Superellipse key={integration.id} cornerRadius={12} cornerSmoothing={1}>
                   <div 
-                    className="p-4 bg-muted/10 hover:bg-muted/20 transition-all cursor-pointer"
+                    className={cn(
+                      "p-4 bg-muted/10 hover:bg-muted/20 cursor-pointer",
+                      selectedIntegration?.id === integration.id && "bg-primary/10"
+                    )}
                     onClick={() => setSelectedIntegration(integration)}
                   >
                     <div className="flex items-center gap-4">
-                      <div className="text-3xl">{integration.icon}</div>
+                      <div className="text-3xl">
+                        <CachedImage
+                          src={integration.iconUrl}
+                          alt={integration.name}
+                          className="w-10 h-10 object-contain"
+                          fallback={<span>{integration.icon}</span>}
+                        />
+                      </div>
                       <div className="flex-1">
                         <div className="flex items-start justify-between mb-2">
                           <div>
@@ -454,15 +560,24 @@ export default function StorePage() {
               ))}
             </div>
           )}
+            </>
+          )}
         </div>
       </div>
 
-      {selectedIntegration && (
+      {selectedIntegration && activeTab === "marketplace" && (
         <div className="w-96 border-l flex flex-col">
           <div className="p-4 border-b">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-2xl">{selectedIntegration.icon}</span>
+                <div className="text-2xl">
+                  <CachedImage
+                    src={selectedIntegration.iconUrl}
+                    alt={selectedIntegration.name}
+                    className="w-8 h-8 object-contain"
+                    fallback={<span>{selectedIntegration.icon}</span>}
+                  />
+                </div>
                 <h2 className="font-semibold">{selectedIntegration.name}</h2>
               </div>
               <button
@@ -545,6 +660,16 @@ export default function StorePage() {
                 ))}
               </div>
             </div>
+
+            {selectedIntegration.permissions && selectedIntegration.permissions.length > 0 && (
+              <div className="border rounded-lg p-3">
+                <PermissionDisplay
+                  permissions={selectedIntegration.permissions}
+                  dataAccess={selectedIntegration.dataAccess}
+                  showAll={false}
+                />
+              </div>
+            )}
 
             {(selectedIntegration.documentationUrl || selectedIntegration.websiteUrl || selectedIntegration.supportUrl) && (
               <div className="space-y-2">
@@ -638,6 +763,17 @@ export default function StorePage() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Permission Consent Modal */}
+      {pendingInstallation && (
+        <PermissionConsentModal
+          integration={pendingInstallation}
+          open={permissionModalOpen}
+          onOpenChange={setPermissionModalOpen}
+          onConfirm={handlePermissionConfirm}
+          onCancel={handlePermissionCancel}
+        />
       )}
 
       {/* API Key Modal */}

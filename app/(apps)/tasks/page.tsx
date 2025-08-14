@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { ItemList, ListItem, ItemSection } from "@/components/shared/item-list"
 import { AppSidebar, AppSidebarItem } from "@/components/layout/app-sidebar"
 import { BarChart3, Eye, Circle, MoreHorizontal, CheckCircle, Filter, Search, Calendar, Users } from "lucide-react"
@@ -167,6 +167,8 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>(mockTasks)
   const [openSections, setOpenSections] = useState<string[]>(["in-review", "todo", "backlog", "done"])
   const [activeSidebarItem, setActiveSidebarItem] = useState("all-tasks")
+  const [selectedTaskIndex, setSelectedTaskIndex] = useState(0)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const getTasksByStatus = (status: Task['status']) => {
     return tasks.filter(task => task.status === status)
@@ -225,36 +227,111 @@ export default function TasksPage() {
     }
   })
 
-  const renderTaskItem = (task: Task) => (
-    <ListItem
-      icon={BarChart3}
-      id={task.id}
-      title={task.title}
-      type={{
-        label: task.type,
-        color: typeConfig[task.type].color
-      }}
-      badge={{
-        label: task.type === 'bug' ? 'Bug' : 
-               task.type === 'feature' ? 'Feature' :
-               task.type === 'improvement' ? 'Improvement' : 
-               'Research',
-        variant: "secondary"
-      }}
-      assignee={task.assignee}
-      date={task.date}
-    />
+  const allVisibleTasks = sections.flatMap(section => 
+    openSections.includes(section.id) ? section.items : []
   )
 
+  const renderTaskItem = (task: Task, index: number) => {
+    const globalIndex = allVisibleTasks.findIndex(t => t.id === task.id)
+    return (
+      <ListItem
+        icon={BarChart3}
+        id={task.id}
+        title={task.title}
+        type={{
+          label: task.type,
+          color: typeConfig[task.type].color
+        }}
+        badge={{
+          label: task.type === 'bug' ? 'Bug' : 
+                 task.type === 'feature' ? 'Feature' :
+                 task.type === 'improvement' ? 'Improvement' : 
+                 'Research',
+          variant: "secondary"
+        }}
+        assignee={task.assignee}
+        date={task.date}
+        isSelected={globalIndex === selectedTaskIndex}
+        onClick={() => setSelectedTaskIndex(globalIndex)}
+      />
+    )
+  }
+
+  useEffect(() => {
+    // Auto-focus when component mounts
+    if (containerRef.current) {
+      containerRef.current.focus()
+    }
+  }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const visibleTasks = allVisibleTasks
+      if (visibleTasks.length === 0) return
+
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault()
+          setSelectedTaskIndex(prev => 
+            prev < visibleTasks.length - 1 ? prev + 1 : prev
+          )
+          break
+        case 'ArrowUp':
+          e.preventDefault()
+          setSelectedTaskIndex(prev => 
+            prev > 0 ? prev - 1 : prev
+          )
+          break
+        case 'Enter':
+          e.preventDefault()
+          if (selectedTaskIndex >= 0 && selectedTaskIndex < visibleTasks.length) {
+            console.log('Selected task:', visibleTasks[selectedTaskIndex])
+          }
+          break
+      }
+    }
+
+    // Add event listener to the container
+    const container = containerRef.current
+    if (container) {
+      container.addEventListener('keydown', handleKeyDown)
+      return () => container.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [selectedTaskIndex, allVisibleTasks])
+
+  useEffect(() => {
+    // Scroll selected item into view
+    if (containerRef.current && allVisibleTasks.length > 0) {
+      const selectedTask = allVisibleTasks[selectedTaskIndex]
+      if (selectedTask) {
+        const taskElements = containerRef.current.querySelectorAll('[data-task-id]')
+        const selectedElement = Array.from(taskElements).find(
+          el => el.getAttribute('data-task-id') === selectedTask.id
+        )
+        if (selectedElement) {
+          selectedElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        }
+      }
+    }
+  }, [selectedTaskIndex, allVisibleTasks])
+
   return (
-    <div className="space-y-0">
+    <div 
+      ref={containerRef}
+      className="space-y-0 outline-none"
+      tabIndex={0}
+    >
       {/* <AppSidebar items={sidebarItems} /> */}
       {/* <div className="flex-1 space-y-0 overflow-auto"> */}
         <ItemList
           sections={sections}
           renderItem={renderTaskItem}
           openSections={openSections}
-          onSectionToggle={setOpenSections}
+          onSectionToggle={(newSections) => {
+            setOpenSections(newSections)
+            // Reset selection when sections change
+            setSelectedTaskIndex(0)
+          }}
           onAddItem={(sectionId) => console.log('Add item to', sectionId)}
         />
       {/* </div> */}

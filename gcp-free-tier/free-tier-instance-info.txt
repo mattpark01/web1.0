@@ -1,0 +1,35 @@
+FREE TIER INSTANCE INFORMATION
+==============================
+Created: Wed Aug 13 09:39:39 EDT 2025
+Project: kinetic-road-425815-k1
+Instance: free-tier-vm
+Zone: us-central1-a
+Type: e2-micro (FREE TIER)
+
+IMPORTANT LIMITS:
+- Instance hours: 744/month (24/7 for 31 days)
+- Network egress: 1GB/month
+- Disk size: 30GB (current)
+- Region: us-central1 (free tier eligible)
+
+MONITORING:
+- Budget alerts at: $0.01, $1, $5
+- Network egress alert at 800MB
+- CPU utilization alert at 90%
+- Email notifications to: matthew@spatiolabs.org
+
+CLOUD RUN COMPATIBILITY:
+- This instance runs independently of Cloud Run
+- Uses separate compute quotas
+- No conflict with serverless services
+
+COMMANDS:
+Start:  gcloud compute instances start free-tier-vm --zone=us-central1-a
+Stop:   gcloud compute instances stop free-tier-vm --zone=us-central1-a  
+SSH:    gcloud compute ssh free-tier-vm --zone=us-central1-a
+Delete: gcloud compute instances delete free-tier-vm --zone=us-central1-a
+
+MONITORING:
+./monitor-usage.sh          # Check current usage
+./verify-free-tier.sh       # Verify free tier compliance
+./emergency-shutdown.sh     # Emergency stop if needed

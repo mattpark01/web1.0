@@ -1,0 +1,62 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+import { refreshIntegrationToken } from '@/lib/integrations/middleware/token-refresh'
+
+/**
+ * POST /api/integrations/refresh/[id] - Manually refresh integration token
+ */
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await auth()
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    
+    // Verify ownership
+    const integration = await prisma.integration.findFirst({
+      where: { 
+        id: params.id,
+        userId: session.user.id 
+      }
+    })
+    
+    if (!integration) {
+      return NextResponse.json({ error: 'Integration not found' }, { status: 404 })
+    }
+    
+    // Refresh token
+    const result = await refreshIntegrationToken(params.id)
+    
+    if (!result.success) {
+      return NextResponse.json(
+        { 
+          error: result.error || 'Token refresh failed',
+          needsReauth: result.integration?.status === 'EXPIRED' || result.integration?.status === 'REVOKED'
+        },
+        { status: 400 }
+      )
+    }
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Token refreshed successfully',
+      integration: {
+        id: result.integration!.id,
+        provider: result.integration!.provider,
+        status: result.integration!.status,
+        expiresAt: result.integration!.expiresAt
+      }
+    })
+    
+  } catch (error) {
+    console.error('Token refresh error:', error)
+    return NextResponse.json(
+      { error: 'Failed to refresh token' },
+      { status: 500 }
+    )
+  }
+}

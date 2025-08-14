@@ -70,6 +70,7 @@ export default function SheetsPage() {
   const [editingCell, setEditingCell] = useState<string | null>(null)
   const [formulaBarValue, setFormulaBarValue] = useState("")
   const [editingFormulaBar, setEditingFormulaBar] = useState(false)
+  const [formulaRefCell, setFormulaRefCell] = useState<string | null>(null)
   const [copiedCells, setCopiedCells] = useState<{ cells: Set<string>, data: SpreadsheetData } | null>(null)
   const [history, setHistory] = useState<SpreadsheetData[]>([])
   const [historyIndex, setHistoryIndex] = useState(-1)
@@ -95,6 +96,8 @@ export default function SheetsPage() {
   const inputRefs = useRef<{ [key: string]: HTMLInputElement }>({})
   const formulaInputRef = useRef<HTMLInputElement>(null)
   const cellEditValueRef = useRef<string>("")
+  const formulaRefCellRef = useRef<string | null>(null)
+  const lastFormulaPositionRef = useRef<number>(0)
 
   const rows = 100
   const cols = 26 // A-Z columns
@@ -272,12 +275,16 @@ export default function SheetsPage() {
     
     setData(newData)
     setEditingCell(null)
+    setFormulaRefCell(null)
+    formulaRefCellRef.current = null
     setIsDirty(true)
     addToHistory()
   }
 
   const cancelCellEdit = () => {
     setEditingCell(null)
+    setFormulaRefCell(null)
+    formulaRefCellRef.current = null
     // Restore formula bar value
     if (selectedCell) {
       const cell = data[selectedCell]
@@ -288,6 +295,10 @@ export default function SheetsPage() {
   const handleCellInputChange = (cellKey: string, value: string) => {
     cellEditValueRef.current = value
     setFormulaBarValue(value)
+    
+    // Reset formula reference tracking when user types
+    formulaRefCellRef.current = null
+    setFormulaRefCell(null)
     
     // Show autocomplete for formulas
     if (value.startsWith('=')) {
@@ -787,10 +798,39 @@ export default function SheetsPage() {
 
     if (newRow !== coords.row || newCol !== coords.col) {
       const newCellKey = getCellKey(newRow, newCol)
-      setSelectedCell(newCellKey)
-      setSelectedRange(new Set([newCellKey]))
-      const cell = data[newCellKey]
-      setFormulaBarValue(cell?.formula || cell?.value || "")
+      
+      if (event.shiftKey) {
+        // Multi-cell selection with Shift+Arrow
+        // Keep the original selected cell as anchor
+        const anchorCell = selectedCell
+        const anchorCoords = getCellCoordinates(anchorCell)
+        
+        if (anchorCoords) {
+          // Create a range from anchor to new position
+          const newRange = new Set<string>()
+          const minRow = Math.min(anchorCoords.row, newRow)
+          const maxRow = Math.max(anchorCoords.row, newRow)
+          const minCol = Math.min(anchorCoords.col, newCol)
+          const maxCol = Math.max(anchorCoords.col, newCol)
+          
+          for (let r = minRow; r <= maxRow; r++) {
+            for (let c = minCol; c <= maxCol; c++) {
+              newRange.add(getCellKey(r, c))
+            }
+          }
+          
+          setSelectedRange(newRange)
+          // Don't change selectedCell to maintain anchor
+          const cell = data[newCellKey]
+          setFormulaBarValue(cell?.formula || cell?.value || "")
+        }
+      } else {
+        // Single cell selection
+        setSelectedCell(newCellKey)
+        setSelectedRange(new Set([newCellKey]))
+        const cell = data[newCellKey]
+        setFormulaBarValue(cell?.formula || cell?.value || "")
+      }
       
       // Auto-scroll to the new cell
       setTimeout(() => {
@@ -1060,12 +1100,12 @@ export default function SheetsPage() {
           <table className="table-fixed border-collapse" style={{ borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                <th className="sticky top-0 left-0 z-20 bg-muted w-12 h-8 text-xs font-normal text-muted-foreground border border-gray-200 dark:border-gray-800">
+                <th className="sticky top-0 left-0 z-20 bg-muted w-12 h-8 text-xs font-normal text-muted-foreground border border-neutral-200 dark:border-neutral-800">
                 </th>
                 {Array.from({ length: cols }, (_, i) => (
                   <th 
                     key={i} 
-                    className="sticky top-0 z-10 bg-muted w-24 h-8 text-xs font-normal text-muted-foreground hover:bg-muted/80 cursor-pointer border border-gray-200 dark:border-gray-800"
+                    className="sticky top-0 z-10 bg-muted w-24 h-8 text-xs font-normal text-muted-foreground hover:bg-muted/80 cursor-pointer border border-neutral-200 dark:border-neutral-800"
                   >
                     {getColumnLabel(i)}
                   </th>
@@ -1075,7 +1115,7 @@ export default function SheetsPage() {
             <tbody>
               {Array.from({ length: rows }, (_, rowIndex) => (
                 <tr key={rowIndex}>
-                  <td className="sticky left-0 z-10 bg-muted w-12 h-8 text-xs text-center text-muted-foreground hover:bg-muted/80 cursor-pointer border border-gray-200 dark:border-gray-800">
+                  <td className="sticky left-0 z-10 bg-muted w-12 h-8 text-xs text-center text-muted-foreground hover:bg-muted/80 cursor-pointer border border-neutral-200 dark:border-neutral-800">
                     {rowIndex + 1}
                   </td>
                   {Array.from({ length: cols }, (_, colIndex) => {
@@ -1092,11 +1132,11 @@ export default function SheetsPage() {
                         key={cellKey}
                         data-cell={cellKey}
                         className={`
-                          relative h-8 p-0 cursor-cell bg-background border border-gray-200 dark:border-gray-800
-                          ${isSelected ? 'ring-2 ring-gray-400 dark:ring-gray-600 ring-inset z-[5]' : ''}
-                          ${isInRange && !isSelected ? 'bg-gray-50 dark:bg-gray-900' : ''}
-                          ${!isEditing ? 'hover:bg-muted/30' : ''}
-                          focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600
+                          relative h-8 p-0 cursor-cell bg-background border border-neutral-200 dark:border-neutral-800
+                          ${isSelected ? 'ring-1 ring-neutral-400 dark:ring-neutral-600 ring-inset z-[5]' : ''}
+                          ${isInRange && !isSelected ? 'bg-neutral-50 dark:bg-neutral-900' : ''}
+                          ${!isEditing ? 'hover:bg-neutral-100 dark:hover:bg-neutral-800' : ''}
+                          focus:outline-none
                         `}
                         onClick={(e) => handleCellClick(cellKey, e)}
                         onDoubleClick={() => handleCellDoubleClick(cellKey)}
@@ -1136,59 +1176,124 @@ export default function SheetsPage() {
                             }}
                             onChange={(e) => handleCellInputChange(cellKey, e.target.value)}
                             onKeyDown={(e) => {
-                              // Check if autocomplete should be active
                               const currentValue = cellEditValueRef.current
                               const isTypingFormula = currentValue.startsWith('=')
                               const hasPartialFunction = isTypingFormula && currentValue.match(/([A-Z_]+)$/i)
                               const shouldHandleAutocomplete = showAutocomplete && autocompleteOptions.length > 0 && hasPartialFunction
                               
-                              // Handle arrow keys for autocomplete first
-                              if (e.key === 'ArrowDown') {
+                              // Handle arrow keys
+                              if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
                                 if (shouldHandleAutocomplete) {
-                                  // Navigate autocomplete
+                                  // Navigate autocomplete dropdown
+                                  if (e.key === 'ArrowDown') {
+                                    e.preventDefault()
+                                    setSelectedAutocomplete(prev => 
+                                      prev < autocompleteOptions.length - 1 ? prev + 1 : 0
+                                    )
+                                  } else if (e.key === 'ArrowUp') {
+                                    e.preventDefault()
+                                    setSelectedAutocomplete(prev => 
+                                      prev > 0 ? prev - 1 : autocompleteOptions.length - 1
+                                    )
+                                  }
+                                  return
+                                } else if (isTypingFormula) {
+                                  // Excel-like behavior: arrow keys in formula mode select cells
                                   e.preventDefault()
-                                  e.stopPropagation()
-                                  setSelectedAutocomplete(prev => 
-                                    prev < autocompleteOptions.length - 1 ? prev + 1 : 0
-                                  )
+                                  
+                                  // Check if we should be inserting/updating a reference
+                                  const lastChar = currentValue[currentValue.length - 1]
+                                  const shouldStartNewRef = currentValue === '=' || 
+                                    ['+', '-', '*', '/', '(', ',', ':', '=', ' '].includes(lastChar)
+                                  
+                                  // Get current position for navigation
+                                  const navFromCell = formulaRefCellRef.current || selectedCell || cellKey
+                                  const coords = getCellCoordinates(navFromCell)
+                                  if (!coords) return
+                                  
+                                  let targetRow = coords.row
+                                  let targetCol = coords.col
+                                  
+                                  switch (e.key) {
+                                    case 'ArrowUp':
+                                      targetRow = Math.max(0, coords.row - 1)
+                                      break
+                                    case 'ArrowDown':
+                                      targetRow = Math.min(rows - 1, coords.row + 1)
+                                      break
+                                    case 'ArrowLeft':
+                                      targetCol = Math.max(0, coords.col - 1)
+                                      break
+                                    case 'ArrowRight':
+                                      targetCol = Math.min(cols - 1, coords.col + 1)
+                                      break
+                                  }
+                                  
+                                  const targetCellKey = getCellKey(targetRow, targetCol)
+                                  
+                                  let newValue = currentValue
+                                  
+                                  if (shouldStartNewRef && !formulaRefCellRef.current) {
+                                    // Start a new reference
+                                    newValue = currentValue + targetCellKey
+                                    lastFormulaPositionRef.current = currentValue.length
+                                    formulaRefCellRef.current = targetCellKey
+                                  } else if (formulaRefCellRef.current) {
+                                    // Update existing reference
+                                    const beforeRef = currentValue.substring(0, lastFormulaPositionRef.current)
+                                    const afterRef = currentValue.substring(lastFormulaPositionRef.current + formulaRefCellRef.current.length)
+                                    newValue = beforeRef + targetCellKey + afterRef
+                                    formulaRefCellRef.current = targetCellKey
+                                  } else {
+                                    // No reference context, just move selection
+                                    setSelectedCell(targetCellKey)
+                                    setSelectedRange(new Set([targetCellKey]))
+                                    return
+                                  }
+                                  
+                                  cellEditValueRef.current = newValue
+                                  const input = inputRefs.current[cellKey]
+                                  if (input) {
+                                    input.value = newValue
+                                    input.setSelectionRange(newValue.length, newValue.length)
+                                  }
+                                  setFormulaBarValue(newValue)
+                                  
+                                  // Visually select the referenced cell
+                                  setSelectedCell(targetCellKey)
+                                  setSelectedRange(new Set([targetCellKey]))
+                                  setFormulaRefCell(targetCellKey)
                                   return
                                 } else {
-                                  // Navigate to cell below
+                                  // Normal navigation - confirm edit and move
                                   e.preventDefault()
                                   confirmCellEdit(cellKey)
                                   const coords = getCellCoordinates(cellKey)
-                                  if (coords && coords.row < rows - 1) {
-                                    const nextCell = getCellKey(coords.row + 1, coords.col)
-                                    setSelectedCell(nextCell)
-                                    setSelectedRange(new Set([nextCell]))
-                                    const cell = data[nextCell]
-                                    setFormulaBarValue(cell?.formula || cell?.value || "")
+                                  if (!coords) return
+                                  
+                                  let newRow = coords.row
+                                  let newCol = coords.col
+                                  
+                                  switch (e.key) {
+                                    case 'ArrowUp':
+                                      newRow = Math.max(0, coords.row - 1)
+                                      break
+                                    case 'ArrowDown':
+                                      newRow = Math.min(rows - 1, coords.row + 1)
+                                      break
+                                    case 'ArrowLeft':
+                                      newCol = Math.max(0, coords.col - 1)
+                                      break
+                                    case 'ArrowRight':
+                                      newCol = Math.min(cols - 1, coords.col + 1)
+                                      break
                                   }
-                                  return
-                                }
-                              }
-                              
-                              if (e.key === 'ArrowUp') {
-                                if (shouldHandleAutocomplete) {
-                                  // Navigate autocomplete
-                                  e.preventDefault()
-                                  e.stopPropagation()
-                                  setSelectedAutocomplete(prev => 
-                                    prev > 0 ? prev - 1 : autocompleteOptions.length - 1
-                                  )
-                                  return
-                                } else {
-                                  // Navigate to cell above
-                                  e.preventDefault()
-                                  confirmCellEdit(cellKey)
-                                  const coords = getCellCoordinates(cellKey)
-                                  if (coords && coords.row > 0) {
-                                    const nextCell = getCellKey(coords.row - 1, coords.col)
-                                    setSelectedCell(nextCell)
-                                    setSelectedRange(new Set([nextCell]))
-                                    const cell = data[nextCell]
-                                    setFormulaBarValue(cell?.formula || cell?.value || "")
-                                  }
+                                  
+                                  const nextCell = getCellKey(newRow, newCol)
+                                  setSelectedCell(nextCell)
+                                  setSelectedRange(new Set([nextCell]))
+                                  const cell = data[nextCell]
+                                  setFormulaBarValue(cell?.formula || cell?.value || "")
                                   return
                                 }
                               }

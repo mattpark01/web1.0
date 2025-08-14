@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cache Test</title>
+</head>
+<body>
+    <h1>Integration Cache Test</h1>
+    <button onclick="testCache()">Test Cache Performance</button>
+    <div id="results"></div>
+    
+    <script>
+        async function testCache() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Testing...</p>';
+            
+            // First call - should hit API
+            console.time('First API call');
+            const start1 = performance.now();
+            const res1 = await fetch('/api/marketplace/integrations?platform=calendar');
+            const data1 = await res1.json();
+            const time1 = performance.now() - start1;
+            console.timeEnd('First API call');
+            
+            // Second call - should be cached (if caching is working on server)
+            console.time('Second API call');
+            const start2 = performance.now();
+            const res2 = await fetch('/api/marketplace/integrations?platform=calendar');
+            const data2 = await res2.json();
+            const time2 = performance.now() - start2;
+            console.timeEnd('Second API call');
+            
+            // Third call with different params - should hit API
+            console.time('Third API call (different params)');
+            const start3 = performance.now();
+            const res3 = await fetch('/api/marketplace/integrations?platform=bank');
+            const data3 = await res3.json();
+            const time3 = performance.now() - start3;
+            console.timeEnd('Third API call (different params)');
+            
+            results.innerHTML = `
+                <h2>Results:</h2>
+                <p>First call (calendar): ${time1.toFixed(2)}ms - ${data1.integrations.length} integrations</p>
+                <p>Second call (calendar, cached?): ${time2.toFixed(2)}ms - ${data2.integrations.length} integrations</p>
+                <p>Third call (bank, new): ${time3.toFixed(2)}ms - ${data3.integrations.length} integrations</p>
+                <p>Cache speedup: ${((time1 - time2) / time1 * 100).toFixed(1)}%</p>
+                <br>
+                <h3>Sample Integration with Logo:</h3>
+                <p>${data1.integrations[0].name}: ${data1.integrations[0].iconUrl}</p>
+                <img src="${data1.integrations[0].iconUrl}" width="48" height="48" />
+            `;
+            
+            // Check localStorage cache
+            console.log('LocalStorage cache keys:', Object.keys(localStorage).filter(k => k.startsWith('spatio_cache_')));
+        }
+    </script>
+</body>
+</html>

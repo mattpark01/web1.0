@@ -1,6 +1,7 @@
 "use client"
 
 import { Superellipse } from "@/components/ui/superellipse/superellipse"
+import { getGridBorderClasses } from "@/lib/utils/grid-borders"
 
 interface CalendarEvent {
   id: string
@@ -71,13 +72,26 @@ export function WeekView({ date, events }: WeekViewProps) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header row with empty corner and day headers */}
-      <div className="flex h-20 border-b sticky top-0 bg-background z-10">
-        <div className="w-20 border-r flex-shrink-0" />
+      <div className="flex h-20 sticky top-0 bg-background z-10">
+        <div className={`w-20 flex-shrink-0 ${getGridBorderClasses({
+          row: 0,
+          col: 0,
+          totalRows: 1,
+          totalCols: 8,
+          borderStyle: 'all'
+        })}`} />
         {weekDates.map((weekDate, index) => {
           const isToday = weekDate.toDateString() === currentTime.toDateString()
           const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+          const borderClasses = getGridBorderClasses({
+            row: 0,
+            col: index + 1,
+            totalRows: 1,
+            totalCols: 8,
+            borderStyle: 'all'
+          })
           return (
-            <div key={index} className={`flex-1 border-r last:border-r-0 p-2 text-center ${isToday ? 'bg-primary/5' : ''}`}>
+            <div key={index} className={`flex-1 p-2 text-center ${borderClasses} ${isToday ? 'bg-primary/5' : ''}`}>
               <div className="text-xs text-muted-foreground">{dayNames[weekDate.getDay()]}</div>
               <div className={`text-lg font-medium ${isToday ? 'text-primary' : ''}`}>
                 {weekDate.getDate()}
@@ -91,27 +105,45 @@ export function WeekView({ date, events }: WeekViewProps) {
       <div className="flex-1 overflow-auto">
         <div className="flex" style={{ minHeight: `${hours.length * 60}px` }}>
           {/* Time column */}
-          <div className="w-20 flex-shrink-0 border-r">
-            {hours.map(hour => (
-              <div key={hour} className="h-[60px] border-b text-xs text-muted-foreground text-right pr-2 pt-1">
-                {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
-              </div>
-            ))}
+          <div className="w-20 flex-shrink-0">
+            {hours.map((hour, hourIndex) => {
+              const borderClasses = getGridBorderClasses({
+                row: hourIndex,
+                col: 0,
+                totalRows: hours.length,
+                totalCols: 8,
+                borderStyle: 'all'
+              })
+              return (
+                <div key={hour} className={`h-[60px] text-xs text-muted-foreground text-right pr-2 pt-1 ${borderClasses}`}>
+                  {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
+                </div>
+              )
+            })}
           </div>
 
           {/* Days columns */}
-          {weekDates.map((weekDate, index) => {
+          {weekDates.map((weekDate, dayIndex) => {
             const dayEvents = getEventsForDate(weekDate)
             const isToday = weekDate.toDateString() === currentTime.toDateString()
             
             return (
-              <div key={index} className="flex-1 border-r last:border-r-0">
+              <div key={dayIndex} className="flex-1">
                 {/* Hours grid and events */}
                 <div className="relative" style={{ height: `${hours.length * 60}px` }}>
                   {/* Hour grid lines */}
-                  {hours.map(hour => (
-                    <div key={hour} className="h-[60px] border-b" />
-                  ))}
+                  {hours.map((hour, hourIndex) => {
+                    const borderClasses = getGridBorderClasses({
+                      row: hourIndex,
+                      col: dayIndex + 1,
+                      totalRows: hours.length,
+                      totalCols: 8,
+                      borderStyle: 'all'
+                    })
+                    return (
+                      <div key={hour} className={`h-[60px] ${borderClasses}`} />
+                    )
+                  })}
                   
                   {/* Current time indicator */}
                   {isToday && (

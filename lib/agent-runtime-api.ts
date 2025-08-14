@@ -3,6 +3,14 @@
 
 const AGENT_RUNTIME_URL = process.env.NEXT_PUBLIC_AGENT_RUNTIME_URL || 'http://localhost:8081';
 
+export interface IntegrationPermission {
+  id: string;
+  name: string;
+  description: string;
+  category: 'read' | 'write' | 'delete' | 'admin';
+  required: boolean;
+}
+
 export interface Integration {
   id: string;
   platformId: string;
@@ -10,9 +18,16 @@ export interface Integration {
   name: string;
   description: string;
   icon: string;
+  iconUrl?: string;
   category: string;
   authType: 'oauth2' | 'api_key' | 'none';
   requiredScopes?: string[];
+  permissions?: IntegrationPermission[];
+  dataAccess?: {
+    read: string[];
+    write: string[];
+    delete?: string[];
+  };
   tags: string[];
   pricingType: 'free' | 'paid' | 'freemium';
   pricingDetails?: string;
@@ -123,13 +138,14 @@ class AgentRuntimeAPI {
       if (filters.tags) filters.tags.forEach(tag => params.append('tags', tag));
       if (filters.searchTerm) params.append('search', filters.searchTerm);
       if (filters.pricingType) params.append('pricing', filters.pricingType);
-      if (filters.sortBy) params.append('sort', filters.sortBy);
+      if (filters.sortBy) params.append('sortBy', filters.sortBy);
       if (filters.limit) params.append('limit', filters.limit.toString());
       if (filters.offset) params.append('offset', filters.offset.toString());
     }
 
+    // Use local web1.0 API instead of agent-runtime for connections
     const response = await fetch(
-      `${this.baseUrl}/api/marketplace/integrations?${params.toString()}`,
+      `/api/connections/integrations?${params.toString()}`,
       {
         headers: this.headers,
       }
@@ -139,12 +155,13 @@ class AgentRuntimeAPI {
       throw new Error(`Failed to fetch integrations: ${response.statusText}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    return data.integrations || [];
   }
 
   async getIntegration(integrationId: string): Promise<Integration> {
     const response = await fetch(
-      `${this.baseUrl}/api/marketplace/integrations/${integrationId}`,
+      `${this.baseUrl}/api/connections/integrations/${integrationId}`,
       {
         headers: this.headers,
       }
@@ -158,8 +175,9 @@ class AgentRuntimeAPI {
   }
 
   async getPlatforms(): Promise<AppPlatform[]> {
+    // Use local web1.0 API instead of agent-runtime for platforms
     const response = await fetch(
-      `${this.baseUrl}/api/platforms`,
+      `/api/platforms`,
       {
         headers: this.headers,
       }
@@ -175,13 +193,12 @@ class AgentRuntimeAPI {
   // Installation endpoints
   async installIntegration(request: InstallationRequest): Promise<InstallationResponse> {
     const response = await fetch(
-      `${this.baseUrl}/api/integrations/install`,
+      `/api/connections/integrations/${request.integrationId}/install`,
       {
         method: 'POST',
         headers: this.headers,
         body: JSON.stringify({
-          ...request,
-          userId: this.getUserId(),
+          settings: request.settings,
         }),
       }
     );

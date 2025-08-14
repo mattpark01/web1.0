@@ -21,7 +21,34 @@ export async function GET(request: Request) {
     // Get user ID from session (hardcoded for now)
     const userId = 'default-user'
 
-    // Fetch all brokerage connections for the user
+    // First check if there are any investment-enabled bank accounts (from Plaid)
+    const plaidAccounts = await prisma.bankAccount.findMany({
+      where: {
+        userId,
+        type: { in: ['investment', 'brokerage'] }
+      }
+    })
+
+    const allHoldings = []
+    const allSecurities = []
+    const allAccounts = []
+
+    // If there are Plaid investment accounts, fetch their holdings
+    for (const account of plaidAccounts) {
+      try {
+        const holdingsResponse = await plaidClient.investmentsHoldingsGet({
+          access_token: account.plaidAccessToken,
+        })
+
+        allHoldings.push(...holdingsResponse.data.holdings)
+        allSecurities.push(...holdingsResponse.data.securities)
+        allAccounts.push(...holdingsResponse.data.accounts)
+      } catch (error) {
+        console.error(`Error fetching holdings for account ${account.id}:`, error)
+      }
+    }
+
+    // Also check for any separate brokerage connections
     const connections = await prisma.brokerageConnection.findMany({
       where: { 
         userId,
@@ -29,10 +56,6 @@ export async function GET(request: Request) {
         isActive: true
       }
     })
-
-    const allHoldings = []
-    const allSecurities = []
-    const allAccounts = []
 
     for (const connection of connections) {
       try {
@@ -85,9 +108,9 @@ export async function GET(request: Request) {
       }
     }
 
-    // Transform data for frontend
+    // Transform data for frontend (handle empty case)
     const portfolioData = {
-      holdings: allHoldings.map(holding => {
+      holdings: allHoldings.length > 0 ? allHoldings.map(holding => {
         const security = allSecurities.find(s => s.security_id === holding.security_id)
         const account = allAccounts.find(a => a.account_id === holding.account_id)
         
@@ -106,17 +129,18 @@ export async function GET(request: Request) {
             : 0,
           type: security?.type || 'equity'
         }
-      }),
+      }) : [],
       total_value: allHoldings.reduce((sum, h) => sum + (h.institution_value || 0), 0),
       total_cost: allHoldings.reduce((sum, h) => sum + (h.cost_basis || 0), 0),
-      accounts: allAccounts.map(account => ({
+      accounts: allAccounts.length > 0 ? allAccounts.map(account => ({
         id: account.account_id,
         name: account.name,
         type: account.type,
         subtype: account.subtype,
         balance: account.balances.current || 0,
         available: account.balances.available || 0
-      }))
+      })) : [],
+      message: allHoldings.length === 0 ? 'No investment accounts connected yet' : undefined
     }
 
     return NextResponse.json(portfolioData)

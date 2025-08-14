@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { integrationRegistry } from '@/lib/integrations/core/registry'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { encryptToken } from '@/lib/integrations/core/encryption'
 
 // GET /api/integrations/[provider]/callback - OAuth callback
 export async function GET(
@@ -80,40 +81,40 @@ export async function GET(
       })
     }
 
-    // Save connection to database
-    await prisma.integrationConnection.upsert({
+    // Save connection to database with encrypted tokens
+    await prisma.integration.upsert({
       where: {
-        userId_providerId_accountId: {
+        userId_provider_accountId: {
           userId: session.user.id,
-          providerId: dbProvider.id,
+          provider: params.provider.toUpperCase().replace('-', '_') as any,
           accountId: connection.accountId || '',
         }
       },
       update: {
-        connectionName: connection.connectionName,
         accountEmail: connection.accountEmail,
-        accessToken: connection.credentials.accessToken,
-        refreshToken: connection.credentials.refreshToken,
+        accessToken: encryptToken(connection.credentials.accessToken!),
+        refreshToken: connection.credentials.refreshToken ? encryptToken(connection.credentials.refreshToken) : null,
         expiresAt: connection.credentials.expiresAt,
         tokenType: connection.credentials.tokenType,
-        scopes: connection.credentials.scopes,
-        rawCredentials: connection.credentials.raw as any,
-        status: 'active',
+        scopes: connection.credentials.scopes || [],
+        metadata: connection.credentials.raw as any,
+        status: 'ACTIVE',
+        errorMessage: null,
+        errorCount: 0,
         updatedAt: new Date(),
       },
       create: {
         userId: session.user.id,
-        providerId: dbProvider.id,
-        connectionName: connection.connectionName,
+        provider: params.provider.toUpperCase().replace('-', '_') as any,
         accountId: connection.accountId,
         accountEmail: connection.accountEmail,
-        accessToken: connection.credentials.accessToken,
-        refreshToken: connection.credentials.refreshToken,
+        accessToken: encryptToken(connection.credentials.accessToken!),
+        refreshToken: connection.credentials.refreshToken ? encryptToken(connection.credentials.refreshToken) : null,
         expiresAt: connection.credentials.expiresAt,
         tokenType: connection.credentials.tokenType,
-        scopes: connection.credentials.scopes,
-        rawCredentials: connection.credentials.raw as any,
-        status: 'active',
+        scopes: connection.credentials.scopes || [],
+        metadata: connection.credentials.raw as any,
+        status: 'ACTIVE',
         syncEnabled: true,
       }
     })

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Mail,
   Inbox,
@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 
 export default function MailPage() {
   const [selectedMail, setSelectedMail] = useState<MailItem | null>(null);
+  const [selectedMailIndex, setSelectedMailIndex] = useState<number>(0);
   const [mails, setMails] = useState<MailItem[]>([
     {
       id: "1",
@@ -194,6 +195,8 @@ Alex`,
 
   const handleSelectMail = (mail: MailItem) => {
     setSelectedMail(mail);
+    const index = mails.findIndex(m => m.id === mail.id);
+    setSelectedMailIndex(index);
     // Mark as read when selected
     setMails(prev => prev.map(m => 
       m.id === mail.id ? { ...m, isRead: true } : m
@@ -219,6 +222,51 @@ Alex`,
     setMails(prev => prev.filter(m => m.id !== selectedMail.id));
     setSelectedMail(null);
   };
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (mails.length === 0) return;
+      
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          setSelectedMailIndex(prev => {
+            const newIndex = prev < mails.length - 1 ? prev + 1 : prev;
+            setSelectedMail(mails[newIndex]);
+            // Mark as read when selected via keyboard
+            setMails(prevMails => prevMails.map(m => 
+              m.id === mails[newIndex].id ? { ...m, isRead: true } : m
+            ));
+            return newIndex;
+          });
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setSelectedMailIndex(prev => {
+            const newIndex = prev > 0 ? prev - 1 : prev;
+            setSelectedMail(mails[newIndex]);
+            // Mark as read when selected via keyboard
+            setMails(prevMails => prevMails.map(m => 
+              m.id === mails[newIndex].id ? { ...m, isRead: true } : m
+            ));
+            return newIndex;
+          });
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mails]);
+
+  // Initialize selected mail on mount
+  useEffect(() => {
+    if (mails.length > 0 && !selectedMail) {
+      setSelectedMail(mails[0]);
+      setSelectedMailIndex(0);
+    }
+  }, []);
 
   return (
     <div className="flex h-full">

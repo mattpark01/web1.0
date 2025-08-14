@@ -1,0 +1,61 @@
+Metric,Month 1,Month 2,Month 3,Month 6,Month 12,Notes
+Starting Capital,$3000,$4246,$6006,$16998,$117849,Beginning of period
+Ending Capital,$4246,$6006,$8497,$40832,$234370,End of period (includes withdrawals)
+Trading Capital Only,$4246,$6006,$8497,$40832,$119917,Capital actively trading
+Total Withdrawn,$32,$77,$155,$1324,$114453,Cumulative 2.5% withdrawals
+,,,,,,
+DAILY METRICS,,,,,,
+Gross Daily Return,2.00%,2.00%,2.00%,2.00%,2.00%,Before fees
+Trading Fees per Day,0.20%,0.20%,0.20%,0.20%,0.20%,0.14% trade + 0.06% gas
+Net Daily Return,1.80%,1.80%,1.80%,1.80%,1.80%,After all fees
+Average Daily Profit,$76,$108,$153,$734,$2121,Net profit after fees
+Daily Reinvestment,$74,$105,$149,$716,$2068,97.5% of net profit
+Daily Withdrawal,$1.91,$2.70,$3.82,$18.40,$53.03,2.5% of net profit
+,,,,,,
+LEVERAGE METRICS,,,,,,
+Base Leverage,1.00x,1.00x,1.00x,1.00x,1.00x,Starting leverage
+Max Leverage Used,1.30x,1.30x,1.30x,1.30x,1.30x,Maximum allowed
+Average Leverage,1.15x,1.20x,1.25x,1.28x,1.30x,Weighted average
+Total Buying Power,$4883,$7207,$10621,$52282,$155826,With max leverage
+,,,,,,
+TRADING ACTIVITY,,,,,,
+Trades per Day,3,3,3,3,3,Average trades
+Total Monthly Trades,60,60,60,60,60,20 trading days
+Win Rate,100%,100%,100%,100%,100%,Assumed perfect
+Average Trade Size,$1400,$2000,$2800,$13600,$40000,~30% of capital
+Total Volume Traded,$84000,$120000,$168000,$816000,$2400000,Monthly volume
+,,,,,,
+FEE ANALYSIS,,,,,,
+Total Trading Fees,$168,$240,$336,$1632,$4800,Monthly fees
+Gas Fees (Base),$2,$2,$2,$2,$2,Minimal on Base
+Total Costs,$170,$242,$338,$1634,$4802,All fees combined
+Fee as % of Profit,10.52%,10.52%,10.52%,10.52%,10.52%,Cost ratio
+Net Margin,89.48%,89.48%,89.48%,89.48%,89.48%,Profit margin
+,,,,,,
+COMPOUND METRICS,,,,,,
+Monthly Growth Rate,41.53%,41.53%,41.53%,41.53%,41.53%,Compound growth
+Cumulative Growth,41.53%,100.14%,183.23%,1260.73%,3897.25%,From initial
+Annual APY,,,,,3897.25%,Annualized return
+Monthly Withdrawal,$32,$45,$64,$355,$2869,That month's total
+Withdrawal Rate,0.75%,0.75%,0.75%,0.88%,2.39%,% of trading capital
+,,,,,,
+RISK METRICS,,,,,,
+Max Position Size,$1273,$1802,$2549,$12250,$35975,30% base allocation
+Max Drawdown Allowed,20%,20%,20%,20%,20%,Before pause
+Stop Loss,None,None,None,None,None,No stops used
+Risk per Trade,0.60%,0.60%,0.60%,0.60%,0.60%,3x fees minimum
+Sharpe Ratio,2.1,2.1,2.1,2.1,2.1,Estimated
+,,,,,,
+BREAKEVEN ANALYSIS,,,,,,
+Breakeven Win Rate,10.5%,10.5%,10.5%,10.5%,10.5%,To cover fees
+Required Daily Move,0.20%,0.20%,0.20%,0.20%,0.20%,Minimum profitable
+With 1.3x Leverage,0.15%,0.15%,0.15%,0.15%,0.15%,Adjusted minimum
+Target Move,0.60%,0.60%,0.60%,0.60%,0.60%,3x fees
+Average Holding Time,4 hrs,4 hrs,4 hrs,4 hrs,4 hrs,Per position
+,,,,,,
+WITHDRAWAL STRATEGY,,,,,,
+Monthly Living Expenses,$0,$0,$0,$355,$2869,Withdrawal covers
+Reinvestment Rate,97.5%,97.5%,97.5%,97.5%,97.5%,Of net profits
+Tax Reserve Needed,$0,$0,$0,$500,$45780,~40% of profits
+Post-Tax Withdrawal,$32,$45,$64,$355,$2869,Available income
+Financial Independence,No,No,No,Partial,Yes,Based on $2k/mo need

@@ -1,6 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -83,6 +85,11 @@ export default function NotesPage() {
   const [editContent, setEditContent] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [activeSidebarItem, setActiveSidebarItem] = useState("all-notes")
+  const [isSaving, setIsSaving] = useState(false)
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const titleRef = useRef<HTMLInputElement>(null)
 
   const filteredNotes = notes.filter(note => {
     if (activeSidebarItem === "starred" && !note.isPinned) return false
@@ -139,32 +146,86 @@ export default function NotesPage() {
     }
   ]
 
-  const handleStartEdit = () => {
-    if (selectedNote) {
-      setEditTitle(selectedNote.title)
-      setEditContent(selectedNote.content)
-      setIsEditing(true)
-    }
-  }
-
-  const handleSaveEdit = () => {
-    if (selectedNote) {
+  // Auto-save functionality - only save if content actually changed
+  const saveNote = useCallback(() => {
+    if (selectedNote && isEditing) {
+      // Check if content actually changed
+      if (editTitle === selectedNote.title && editContent === selectedNote.content) {
+        return // No changes, don't save
+      }
+      
+      setIsSaving(true)
+      const updatedNote = { 
+        ...selectedNote, 
+        title: editTitle || "Untitled", 
+        content: editContent, 
+        updatedAt: new Date() 
+      }
       const updatedNotes = notes.map(note => 
-        note.id === selectedNote.id 
-          ? { ...note, title: editTitle, content: editContent, updatedAt: new Date() }
-          : note
+        note.id === selectedNote.id ? updatedNote : note
       )
       setNotes(updatedNotes)
-      setSelectedNote({ ...selectedNote, title: editTitle, content: editContent })
-      setIsEditing(false)
+      setSelectedNote(updatedNote)
+      setTimeout(() => {
+        setIsSaving(false)
+        setLastSaved(new Date())
+      }, 300)
+    }
+  }, [selectedNote, isEditing, editTitle, editContent, notes])
+
+  // Debounced auto-save - only triggers when content changes
+  useEffect(() => {
+    if (isEditing && selectedNote) {
+      // Only set up save timer if content has actually changed
+      const hasChanges = editTitle !== selectedNote.title || editContent !== selectedNote.content
+      
+      if (hasChanges) {
+        if (saveTimeoutRef.current) {
+          clearTimeout(saveTimeoutRef.current)
+        }
+        saveTimeoutRef.current = setTimeout(() => {
+          saveNote()
+        }, 500)
+      }
+    }
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+      }
+    }
+  }, [editTitle, editContent, isEditing, selectedNote, saveNote])
+
+  // Handle content changes from contentEditable
+  const handleContentChange = (e: React.FormEvent<HTMLDivElement>) => {
+    const text = e.currentTarget.innerText
+    setEditContent(text)
+    if (!isEditing) {
+      setIsEditing(true)
+      setEditTitle(selectedNote?.title || '')
     }
   }
 
-  const handleCancelEdit = () => {
-    setIsEditing(false)
-    setEditTitle("")
-    setEditContent("")
-  }
+  // Set content when selecting a note
+  useEffect(() => {
+    if (selectedNote) {
+      setEditContent(selectedNote.content)
+      setEditTitle(selectedNote.title)
+      setIsEditing(false)
+    }
+  }, [selectedNote?.id])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + S to save immediately
+      if ((e.metaKey || e.ctrlKey) && e.key === 's' && isEditing) {
+        e.preventDefault()
+        saveNote()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isEditing, saveNote])
 
   const handleTogglePin = () => {
     if (selectedNote) {
@@ -194,6 +255,9 @@ export default function NotesPage() {
     setEditTitle(newNote.title)
     setEditContent(newNote.content)
     setIsEditing(true)
+    setTimeout(() => {
+      titleRef.current?.focus()
+    }, 0)
   }
 
   const formatDate = (date: Date) => {
@@ -242,7 +306,12 @@ export default function NotesPage() {
               className={`p-4 border-b cursor-pointer hover:bg-muted/50 transition-colors ${
                 selectedNote?.id === note.id ? 'bg-muted/50' : ''
               }`}
-              onClick={() => setSelectedNote(note)}
+              onClick={() => {
+                if (isEditing) {
+                  saveNote()
+                }
+                setSelectedNote(note)
+              }}
             >
               <div className="flex items-start justify-between gap-2 mb-1">
                 <h3 className="font-medium text-sm truncate flex-1">{note.title}</h3>
@@ -271,78 +340,60 @@ export default function NotesPage() {
         {selectedNote ? (
           <>
             <div className="p-4 border-b flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {isEditing ? (
-                  <Input
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                    className="font-semibold text-lg border-0 p-0 h-auto focus-visible:ring-0"
-                    placeholder="Note title..."
-                  />
-                ) : (
-                  <h1 className="font-semibold text-lg">{selectedNote.title}</h1>
-                )}
+              <div className="flex-1">
+                <div
+                  ref={titleRef}
+                  contentEditable
+                  suppressContentEditableWarning
+                  onInput={(e) => {
+                    setEditTitle(e.currentTarget.innerText)
+                    if (!isEditing) {
+                      setIsEditing(true)
+                      setEditContent(selectedNote.content)
+                    }
+                  }}
+                  className="font-semibold text-lg outline-none cursor-text"
+                  dangerouslySetInnerHTML={{ __html: selectedNote.title }}
+                />
               </div>
-              <div className="flex items-center gap-2">
-                {isEditing ? (
-                  <>
-                    <Button 
-                      size="sm" 
-                      variant="ghost"
-                      onClick={handleCancelEdit}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      size="sm"
-                      onClick={handleSaveEdit}
-                    >
-                      <Check className="h-4 w-4 mr-1" />
-                      Save
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button 
-                      size="sm" 
-                      variant="ghost"
-                      onClick={handleStartEdit}
-                    >
-                      <Edit3 className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="ghost"
-                      onClick={handleTogglePin}
-                    >
-                      <Star className={`h-4 w-4 ${selectedNote.isPinned ? 'fill-yellow-500 text-yellow-500' : ''}`} />
-                    </Button>
-                    <Button size="sm" variant="ghost">
-                      <Archive className="h-4 w-4" />
-                    </Button>
-                    <Button size="sm" variant="ghost">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </>
+              <div className="flex items-center gap-2 note-actions">
+                {isEditing && isSaving && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3 animate-spin" />
+                      Saving...
+                    </span>
+                  </div>
                 )}
+                <Button 
+                  size="sm" 
+                  variant="ghost"
+                  onClick={handleTogglePin}
+                >
+                  <Star className={`h-4 w-4 ${selectedNote.isPinned ? 'fill-yellow-500 text-yellow-500' : ''}`} />
+                </Button>
+                <Button size="sm" variant="ghost">
+                  <Archive className="h-4 w-4" />
+                </Button>
+                <Button size="sm" variant="ghost">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
               </div>
             </div>
             
             <div className="flex-1 p-4 overflow-auto">
-              {isEditing ? (
-                <Textarea
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  className="min-h-[400px] resize-none border-0 p-0 focus-visible:ring-0 text-sm"
-                  placeholder="Start typing..."
-                />
-              ) : (
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
-                    {selectedNote.content || "No content"}
-                  </pre>
-                </div>
-              )}
+              <div 
+                ref={contentRef}
+                contentEditable
+                suppressContentEditableWarning
+                onInput={handleContentChange}
+                className="prose prose-sm dark:prose-invert max-w-none outline-none min-h-[400px] cursor-text"
+                dangerouslySetInnerHTML={{ 
+                  __html: selectedNote.content 
+                    ? selectedNote.content.replace(/\n/g, '<br>') 
+                    : '<span style="color: var(--muted-foreground)">Click to start writing...</span>' 
+                }}
+              />
             </div>
             
             <div className="p-4 border-t">

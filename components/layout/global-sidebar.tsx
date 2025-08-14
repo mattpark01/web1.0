@@ -11,7 +11,7 @@ import {
   FileText,
   Calendar,
   Terminal,
-  Store,
+  Link2,
   FolderOpen,
   CheckSquare,
   Table,
@@ -50,10 +50,10 @@ const sidebarItems = [
     href: "/terminal",
   },
   {
-    id: "store",
-    label: "Store",
-    icon: Store,
-    href: "/store",
+    id: "connections",
+    label: "Connections",
+    icon: Link2,
+    href: "/connections",
   },
   {
     id: "files",

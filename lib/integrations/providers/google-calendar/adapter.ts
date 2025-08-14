@@ -1,6 +1,9 @@
 import { BaseIntegrationAdapter } from '../../core/base-adapter'
 import { IntegrationConnection, IntegrationProvider, SyncOptions, SyncResult, FetchParams } from '../../core/types'
 import { OAuth2Client } from '../../core/oauth2-client'
+import { getAccessToken, ensureValidToken } from '../../middleware/token-refresh'
+import { markIntegrationUsed } from '../../core/status'
+import { prisma } from '@/lib/prisma'
 
 export interface GoogleCalendarEvent {
   id: string

@@ -1,0 +1,35 @@
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Backup directories
+backups/
+
+# Reports
+*-report-*.txt
+usage-report-*.txt
+verification-report-*.txt
+shutdown-report-*.txt
+
+# Logs
+*.log
+/var/log/gcp-monitor.log
+/var/log/gcp-free-tier-monitor.log
+
+# Temporary files
+*.tmp
+/tmp/gcp-emergency-shutdown.flag
+/tmp/notification-channel.yaml
+/tmp/alert-policy-*.yaml
+
+# Quota limits file (contains project-specific info)
+quota-limits.txt
+
+# Dashboard configurations
+dashboard.json
+
+# GCP credentials
+*-key.json
+credentials.json
+service-account.json

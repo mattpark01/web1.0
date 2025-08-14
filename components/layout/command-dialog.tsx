@@ -18,7 +18,7 @@ import {
   Moon,
   Calendar,
   Terminal,
-  Store,
+  Link2,
   FileText,
   Settings,
   Bot,
@@ -96,7 +96,6 @@ interface SettingsItem {
   actionType: "immediate" | "dialog";
   action?: () => void;
   dialogConfig?: DialogConfig;
-  keepDialogOpen?: boolean;
 }
 
 type AppPage =
@@ -105,7 +104,7 @@ type AppPage =
   | "editor"
   | "calendar"
   | "terminal"
-  | "store"
+  | "connections"
   | "files"
   | "tasks"
   | "sheets"
@@ -123,7 +122,7 @@ const PAGE_TITLES: Record<AppPage, string> = {
   editor: "Editor",
   calendar: "Calendar",
   terminal: "Terminal",
-  store: "Store",
+  connections: "Connections",
   files: "Files",
   tasks: "Tasks",
   sheets: "Sheets",
@@ -142,12 +141,8 @@ const SEARCHABLE_APPS: AppItem[] = [
   { name: "Agent Inbox", path: "/agent", icon: Bot, type: "app" },
   { name: "Editor", path: "/editor", icon: FileText, type: "app" },
   { name: "Calendar", path: "/calendar", icon: Calendar, type: "app" },
-  { name: "Calendar - Year View", path: "/calendar/year", icon: Calendar, type: "app" },
-  { name: "Calendar - Month View", path: "/calendar/month", icon: Calendar, type: "app" },
-  { name: "Calendar - Week View", path: "/calendar/week", icon: Calendar, type: "app" },
-  { name: "Calendar - Day View", path: "/calendar/day", icon: Calendar, type: "app" },
   { name: "Terminal", path: "/terminal", icon: Terminal, type: "app" },
-  { name: "Store", path: "/store", icon: Store, type: "app" },
+  { name: "Connections", path: "/connections", icon: Link2, type: "app" },
   { name: "Files", path: "/files", icon: FileText, type: "app" },
   { name: "Tasks", path: "/tasks", icon: CheckSquare, type: "app" },
   { name: "Sheets", path: "/sheets", icon: Table, type: "app" },
@@ -183,7 +178,6 @@ const createSystemSettings = (
     icon: currentTheme === "dark" ? Sun : Moon,
     type: "settings",
     actionType: "immediate",
-    keepDialogOpen: true,
     action: () => {
       setTheme(currentTheme === "dark" ? "light" : "dark");
     },
@@ -1210,6 +1204,7 @@ const useCommandDialog = () => {
   const [search, setSearch] = useState("");
   const [showResults, setShowResults] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [forceShowGreetingList, setForceShowGreetingList] = useState(false);
 
   // Multi-level dialog state
   const [dialogLevel, setDialogLevel] = useState(0);
@@ -1264,6 +1259,7 @@ const useCommandDialog = () => {
     setOpen(false);
     setSearch("");
     setShowResults(false);
+    setForceShowGreetingList(false);
     setDialogLevel(0);
     setDialogHistory([]);
     setCurrentDialogData(null);
@@ -1282,6 +1278,8 @@ const useCommandDialog = () => {
     isBackslashCommand,
     isJustSlash,
     isJustBackslash,
+    forceShowGreetingList,
+    setForceShowGreetingList,
     dialogLevel,
     dialogHistory,
     currentDialogData,
@@ -1314,6 +1312,8 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
     isBackslashCommand,
     isJustSlash,
     isJustBackslash,
+    forceShowGreetingList,
+    setForceShowGreetingList,
     dialogLevel,
     currentDialogData,
     navigateToDialog,
@@ -1443,7 +1443,7 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
   );
 
   const shouldShowResults =
-    ((isSlashCommand && search.length > 1 && (filteredItems.length > 0 || filteredSections.length > 0 || filteredCommands.length > 0 || filteredSettings.length > 0)) ||
+    ((isSlashCommand && (search.length > 1 || (isJustSlash && forceShowGreetingList)) && (filteredItems.length > 0 || filteredSections.length > 0 || filteredCommands.length > 0 || filteredSettings.length > 0)) ||
      (isBackslashCommand && filteredSettings.length > 0) ||
      (!isSlashCommand && !isBackslashCommand && (filteredSections.length > 0 || filteredCommands.length > 0))) &&
     (showResults || (!isSlashCommand && !isBackslashCommand));
@@ -1488,16 +1488,20 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
 
     if (isSlashCommand) {
       // Slash command mode - compact pill when just slash, expand for results
-      if (isJustSlash || (!shouldShowResults && search.length <= 1)) {
+      if (isJustSlash && !forceShowGreetingList && (!shouldShowResults && search.length <= 1)) {
         targetWidth = 320;
         targetCornerRadius = 100; // Full rounded for pill shape
       } else if (shouldShowResults) {
         targetWidth = 512;
         targetCornerRadius = 10;
-      } else {
+      } else if (!isJustSlash && !shouldShowResults) {
         // Typing but no results yet - stay compact
         targetWidth = 380;
         targetCornerRadius = 50;
+      } else {
+        // Default to normal when forced showing
+        targetWidth = 512;
+        targetCornerRadius = 10;
       }
     } else if (isBackslashCommand) {
       // Backslash command mode - always square corners
@@ -1517,7 +1521,7 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
 
     setCornerRadius(targetCornerRadius);
     animatedWidth.set(targetWidth);
-  }, [search, shouldShowResults, dialogLevel, isSlashCommand, isBackslashCommand, isJustSlash, isJustBackslash, open]);
+  }, [search, shouldShowResults, dialogLevel, isSlashCommand, isBackslashCommand, isJustSlash, isJustBackslash, open, forceShowGreetingList]);
 
   const topHit = isSlashCommand
     ? filteredItems.length > 0
@@ -1811,9 +1815,7 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
                         navigateToDialog(setting);
                       } else {
                         setting.action?.();
-                        if (!setting.keepDialogOpen) {
-                          closeDialog();
-                        }
+                        closeDialog();
                       }
                     }}
                     className="cursor-pointer flex items-center justify-between"
@@ -1846,9 +1848,7 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
                     navigateToDialog(setting);
                   } else {
                     setting.action?.();
-                    if (!setting.keepDialogOpen) {
-                      closeDialog();
-                    }
+                    closeDialog();
                   }
                 }}
                 className="cursor-pointer flex items-center justify-between"
@@ -1920,31 +1920,6 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
           </CommandGroup>
         )}
         
-        {/* Static Sections (legacy) */}
-        {filteredSections.length > 0 && (
-          <CommandGroup heading="Quick Actions">
-            {filteredSections.map((section) => {
-              const Icon = section.icon;
-              return (
-                <CommandItem
-                  key={`section-${section.sourceApp}-${section.name.toLowerCase().replace(/\s+/g, "-")}`}
-                  value={section.name}
-                  onSelect={() => {
-                    section.action?.();
-                    closeDialog();
-                  }}
-                  className="cursor-pointer flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2">
-                    <Icon className="h-4 w-4" />
-                    <span>{section.name}</span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">Section</span>
-                </CommandItem>
-              );
-            })}
-          </CommandGroup>
-        )}
         
         {/* Dynamic Commands */}
         {appDynamicCommands.length > 0 && (
@@ -2067,6 +2042,10 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
                 } else {
                   setSearch(value);
                 }
+                // Reset force show flag when typing
+                if (forceShowGreetingList && value !== "") {
+                  setForceShowGreetingList(false);
+                }
               }}
               className="[&>div]:border-b-0 [&>div]:bg-transparent p-2 text-lg relative z-10 bg-transparent"
               autoFocus
@@ -2085,8 +2064,12 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
               onKeyDown={(e) => {
                 if (e.key === "Escape") {
                   e.preventDefault();
-                  // If search is empty or just a slash (greeting mode), close immediately
-                  if (search === "" || search.length === 0 || search === "/") {
+                  // If greeting list is forced shown, hide it first
+                  if (isJustSlash && forceShowGreetingList) {
+                    setForceShowGreetingList(false);
+                    setShowResults(false);
+                  } else if (search === "" || search.length === 0 || search === "/") {
+                    // If search is empty or just a slash (greeting mode), close immediately
                     closeDialog();
                   } else if (showResults || isSlashCommand || isBackslashCommand) {
                     // Go directly to regular state - hide results and clear any command modes
@@ -2169,8 +2152,19 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
                   }
                 } else if (
                   (e.key === "ArrowDown" || e.key === "ArrowUp") &&
-                  !showResults
+                  isJustSlash &&
+                  !forceShowGreetingList
                 ) {
+                  // Show results when arrow keys are pressed in greeting mode
+                  e.preventDefault();
+                  setForceShowGreetingList(true);
+                  setShowResults(true);
+                } else if (
+                  (e.key === "ArrowDown" || e.key === "ArrowUp") &&
+                  !showResults &&
+                  !isJustSlash
+                ) {
+                  // Show results when arrow keys are pressed and results are hidden
                   e.preventDefault();
                   setShowResults(true);
                 }

@@ -28,7 +28,7 @@ type AppPage =
   | "editor"
   | "calendar"
   | "terminal"
-  | "store"
+  | "connections"
   | "files"
   | "tasks"
   | "sheets"
@@ -46,7 +46,7 @@ const PAGE_TITLES: Record<AppPage, string> = {
   editor: "Editor",
   calendar: "Calendar",
   terminal: "Terminal",
-  store: "Store",
+  connections: "Connections",
   files: "Files",
   tasks: "Tasks",
   sheets: "Sheets",

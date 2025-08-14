@@ -36,7 +36,19 @@ export function usePlaidInvestments() {
       const response = await fetch('/api/plaid/investments')
       
       if (!response.ok) {
-        throw new Error('Failed to fetch investments')
+        // Don't throw error if it's a 404 or no data
+        if (response.status === 404) {
+          setInvestments({
+            holdings: [],
+            total_value: 0,
+            total_cost: 0,
+            accounts: []
+          })
+          return
+        }
+        
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to fetch investments')
       }
       
       const data = await response.json()
@@ -44,6 +56,13 @@ export function usePlaidInvestments() {
     } catch (err) {
       console.error('Error fetching investments:', err)
       setError(err instanceof Error ? err.message : 'An error occurred')
+      // Set empty data on error
+      setInvestments({
+        holdings: [],
+        total_value: 0,
+        total_cost: 0,
+        accounts: []
+      })
     } finally {
       setLoading(false)
     }
