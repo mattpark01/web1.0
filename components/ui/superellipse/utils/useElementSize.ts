@@ -34,7 +34,14 @@ export function useElementSize<
   useEffect(() => {
     if (!ref) return;
 
-    updateSize(); // Update size initially
+    // Force immediate size update
+    updateSize();
+    
+    // Also update after a microtask to catch any layout changes
+    Promise.resolve().then(updateSize);
+    
+    // And after next frame for good measure
+    requestAnimationFrame(updateSize);
 
     const resizeObserver = new ResizeObserver(updateSize);
     resizeObserver.observe(ref);

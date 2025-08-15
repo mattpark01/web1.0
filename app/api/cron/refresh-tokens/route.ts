@@ -10,7 +10,7 @@ import { refreshTokensJob } from '@/lib/jobs/refresh-tokens'
  * {
  *   "crons": [{
  *     "path": "/api/cron/refresh-tokens",
- *     "schedule": "*/15 * * * *"
+ *     "schedule": "0 0,15,30,45 * * * *"
  *   }]
  * }
  */

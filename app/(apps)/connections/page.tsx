@@ -336,11 +336,11 @@ export default function ConnectionsPage() {
               ) : viewMode === "grid" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {integrations.map((integration) => (
-                <Superellipse key={integration.id} cornerRadius={12} cornerSmoothing={1}>
+                <Superellipse key={integration.id} cornerRadius={12} cornerSmoothing={1} className="min-h-[200px]" style={{ display: 'block', width: '100%', height: '100%' }}>
                   <div 
                     className={cn(
-                      "p-4 bg-muted/10 hover:bg-muted/20 cursor-pointer",
-                      selectedIntegration?.id === integration.id && "bg-primary/10"
+                      "p-4 bg-muted/10 hover:bg-muted/20 cursor-pointer h-full",
+                      selectedIntegration?.id === integration.id && "bg-primary/5"
                     )}
                     onClick={() => setSelectedIntegration(integration)}
                   >
@@ -449,8 +449,8 @@ export default function ConnectionsPage() {
                 <Superellipse key={integration.id} cornerRadius={12} cornerSmoothing={1}>
                   <div 
                     className={cn(
-                      "p-4 bg-muted/10 hover:bg-muted/20 cursor-pointer",
-                      selectedIntegration?.id === integration.id && "bg-primary/10"
+                      "p-4 bg-blue-500/20 hover:bg-blue-500/30 cursor-pointer",
+                      selectedIntegration?.id === integration.id && "bg-purple-500/30"
                     )}
                     onClick={() => setSelectedIntegration(integration)}
                   >

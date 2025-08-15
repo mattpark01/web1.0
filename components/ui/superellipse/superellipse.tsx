@@ -112,7 +112,8 @@ const Superellipse = forwardRef(
 
     // Simple path calculation - let the container handle the animation
     const path = useMemo(() => {
-      if (!initialized || !actualWidth || !actualHeight) return "";
+      // Need valid dimensions to generate path
+      if (!initialized || !actualWidth || !actualHeight || actualWidth <= 0 || actualHeight <= 0) return "";
       
       const resolvedCornerRadius = cornerRadius ?? 0;
       
@@ -159,17 +160,23 @@ const Superellipse = forwardRef(
 
     const combinedStyle = {
       ...style,
-      // Only use borderRadius as fallback when no path is available
-      borderRadius: path ? undefined : cornerRadius,
+      // Always apply borderRadius for fallback
+      borderRadius: cornerRadius,
+      // Apply clip path when available
       clipPath: path ? `path('${path}')` : undefined,
       WebkitClipPath: path ? `path('${path}')` : undefined,
       // No transitions - corner radius changes should be instant
       transition: 'none',
       WebkitTransition: 'none',
-      // Ensure content doesn't overflow beyond the clip path
+      // Always ensure content doesn't overflow
       overflow: 'hidden',
       // Add a tiny bit of padding to prevent edge cutoff issues
       boxSizing: 'border-box' as const,
+      // Force layout context
+      position: 'relative' as const,
+      // Ensure the element participates in grid layout properly
+      minWidth: 0,
+      minHeight: 0,
     };
     
 

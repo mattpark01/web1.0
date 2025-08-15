@@ -9,7 +9,7 @@ import { Superellipse } from "@/components/ui/superellipse/superellipse"
 import {
   Bot,
   FileText,
-  Calendar,
+  CalendarDays,
   Terminal,
   Link2,
   FolderOpen,
@@ -40,7 +40,7 @@ const sidebarItems = [
   {
     id: "calendar",
     label: "Calendar", 
-    icon: Calendar,
+    icon: CalendarDays,
     href: "/calendar",
   },
   {

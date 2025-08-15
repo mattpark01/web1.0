@@ -190,6 +190,42 @@ export async function GET(request: NextRequest) {
     } catch (error) {
       console.log('Database not ready, using mock data:', error)
       integrations = getMockIntegrations()
+      
+      // Apply filters to mock data when database fails
+      if (platform && platform !== 'all') {
+        integrations = integrations.filter(i => i.platformId === platform)
+      }
+      if (category && category !== 'all') {
+        integrations = integrations.filter(i => i.category === category)
+      }
+      if (search) {
+        const searchLower = search.toLowerCase()
+        integrations = integrations.filter(i =>
+          i.name.toLowerCase().includes(searchLower) ||
+          i.description.toLowerCase().includes(searchLower) ||
+          i.provider.toLowerCase().includes(searchLower) ||
+          i.tags.some(tag => tag.toLowerCase().includes(searchLower))
+        )
+      }
+      
+      // Sort
+      switch (sortBy) {
+        case 'rating':
+          integrations.sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0))
+          break
+        case 'newest':
+          integrations.sort((a, b) => 
+            new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
+          )
+          break
+        case 'name':
+          integrations.sort((a, b) => a.name.localeCompare(b.name))
+          break
+        case 'popular':
+        default:
+          integrations.sort((a, b) => b.installCount - a.installCount)
+          break
+      }
     }
     
     return NextResponse.json({
