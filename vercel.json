@@ -3,22 +3,6 @@
   "installCommand": "npm install",
   "framework": "nextjs",
   "outputDirectory": ".next",
-  "env": {
-    "DATABASE_URL": "@database_url",
-    "R2_ACCOUNT_ID": "@r2_account_id",
-    "R2_ACCESS_KEY_ID": "@r2_access_key",
-    "R2_SECRET_ACCESS_KEY": "@r2_secret_key",
-    "GCP_PROJECT_ID": "@gcp_project_id",
-    "NEXTAUTH_SECRET": "@nextauth_secret",
-    "SESSION_SECRET": "@session_secret",
-    "INTEGRATION_ENCRYPTION_KEY": "@integration_encryption_key",
-    "CRON_SECRET": "@cron_secret"
-  },
-  "build": {
-    "env": {
-      "DATABASE_URL": "@database_url"
-    }
-  },
   "functions": {
     "app/api/workspace/route.ts": {
       "maxDuration": 30
