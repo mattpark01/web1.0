@@ -23,8 +23,13 @@ export function CachedImage({
   useEffect(() => {
     if (!src) {
       setImageError(true);
+      setIsLoading(false);
       return;
     }
+
+    // Reset states when src changes
+    setImageError(false);
+    setIsLoading(true);
 
     // Check if already loaded
     if (ImagePreloader.isLoaded(src)) {
@@ -39,10 +44,12 @@ export function CachedImage({
         setIsLoading(false);
         setImageError(false);
       })
-      .catch(() => {
+      .catch((error) => {
+        // Image load failed - show placeholder instead
         setIsLoading(false);
         setImageError(true);
         onLoadError?.();
+        // Don't log this as it's expected behavior for some images
       });
   }, [src, onLoadError]);
 

@@ -139,7 +139,7 @@ export function IntegrationManager({ className }: IntegrationManagerProps) {
     return (
       <div className={cn("text-center p-8", className)}>
         <PlugZap className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-        <h3 className="text-lg font-semibold mb-2">No Integrations Connected</h3>
+        <h3 className="text-lg font-semibold mb-2">No Connections</h3>
         <p className="text-muted-foreground">
           Browse the marketplace to connect your favorite services
         </p>
@@ -152,7 +152,7 @@ export function IntegrationManager({ className }: IntegrationManagerProps) {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold flex items-center gap-2">
           <Plug className="h-5 w-5" />
-          Your Integrations
+          Your Connections
         </h2>
         <span className="text-sm text-muted-foreground">
           {integrations.length} connected

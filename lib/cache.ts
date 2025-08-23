@@ -133,7 +133,7 @@ export class ImagePreloader {
       return Promise.resolve();
     }
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const img = new Image();
       
       img.onload = () => {
@@ -143,9 +143,8 @@ export class ImagePreloader {
       };
       
       img.onerror = () => {
-        // Still resolve even on error to not block other images
-        console.warn(`Failed to preload image: ${url}`);
-        resolve();
+        // Image not available - fallback will be used
+        reject(new Error(`Image not available: ${url}`));
       };
       
       img.src = url;

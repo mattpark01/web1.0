@@ -7,25 +7,44 @@ export function useCalendarIntegration() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Fetch active calendar integrations
+  // Fetch active calendar integrations only once
   useEffect(() => {
-    fetchConnections()
+    let mounted = true
+    const loadConnections = async () => {
+      if (mounted) {
+        await fetchConnections()
+      }
+    }
+    loadConnections()
+    return () => { mounted = false }
   }, [])
 
   const fetchConnections = async () => {
     try {
-      const response = await fetch('/api/integrations?category=calendar')
+      const response = await fetch('/api/integrations?category=calendar', {
+        cache: 'force-cache',
+        next: { revalidate: 300 } // Cache for 5 minutes
+      })
       if (response.ok) {
         const data = await response.json()
-        setConnections(data.connections)
+        setConnections(data.connections || [])
+      } else if (response.status === 401) {
+        // User not authenticated, skip calendar integration
+        setConnections([])
       }
     } catch (err) {
       console.error('Failed to fetch calendar connections:', err)
+      setConnections([])
     }
   }
 
   // Sync events from all connected calendars
   const syncEvents = async () => {
+    // Don't sync if no connections available
+    if (connections.length === 0) {
+      return { events: [] }
+    }
+    
     setLoading(true)
     setError(null)
     
@@ -38,7 +57,7 @@ export function useCalendarIntegration() {
       
       if (response.ok) {
         const data = await response.json()
-        setEvents(data.events)
+        setEvents(data.events || [])
         return data
       } else {
         throw new Error('Sync failed')

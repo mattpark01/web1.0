@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { CommandRegistryProvider } from "@/contexts/command-registry";
-import { WagmiProviders } from "@/components/providers/wagmi-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -36,11 +35,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <WagmiProviders>
-            <CommandRegistryProvider>
-              {children}
-            </CommandRegistryProvider>
-          </WagmiProviders>
+          <CommandRegistryProvider>
+            {children}
+          </CommandRegistryProvider>
         </ThemeProvider>
       </body>
     </html>

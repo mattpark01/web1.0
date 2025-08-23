@@ -1,11 +1,12 @@
 "use client"
 
 import { MonthView } from "@/components/calendar/month-view"
-import { useState } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Calendar, Clock, MapPin, Users, MoreHorizontal } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Superellipse } from "@/components/ui/superellipse/superellipse"
+import { useCalendarIntegration } from "@/hooks/use-calendar-integration"
 
 interface CalendarMonthClientProps {
   year: number
@@ -26,8 +27,9 @@ interface CalendarEvent {
 
 export default function CalendarMonthClient({ year, month }: CalendarMonthClientProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const { events: integrationEvents, loading, error, syncEvents } = useCalendarIntegration()
   
-  // Generate events based on the year and month
+  // Fallback mock events for when no integrations are connected
   const mockEvents: CalendarEvent[] = [
     {
       id: "1",
@@ -103,13 +105,61 @@ export default function CalendarMonthClient({ year, month }: CalendarMonthClient
     }
   ]
 
-  const getEventsForDate = (date: Date) => {
-    return mockEvents.filter(event => 
-      event.date.getFullYear() === date.getFullYear() &&
-      event.date.getMonth() === date.getMonth() &&
-      event.date.getDate() === date.getDate()
-    )
-  }
+  // Use integration events if available, otherwise fall back to mock events
+  const displayEvents = useMemo(() => {
+    if (integrationEvents && integrationEvents.length > 0) {
+      // Convert integration events to our calendar event format
+      return integrationEvents.map((event, index) => ({
+        id: event.id || `int-${index}`,
+        title: event.title || event.summary || 'Untitled Event',
+        date: new Date(event.startTime || event.start?.dateTime || event.start?.date),
+        startTime: event.startTime ? new Date(event.startTime).toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit', 
+          hour12: false 
+        }) : '09:00',
+        endTime: event.endTime ? new Date(event.endTime).toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit', 
+          hour12: false 
+        }) : '10:00',
+        type: 'meeting' as const,
+        location: event.location,
+        attendees: event.attendees?.map(a => a.email || a.name).filter(Boolean),
+        color: event.colorId ? `bg-${event.colorId}-500` : 'bg-blue-500'
+      })).filter(event => {
+        // Only show events for the current month
+        const eventDate = event.date
+        return eventDate.getFullYear() === year && eventDate.getMonth() === month - 1
+      })
+    }
+    return mockEvents
+  }, [integrationEvents, year, month])
+
+  const getEventsForDate = useMemo(() => {
+    // Create a map for fast lookups
+    const eventMap = new Map<string, CalendarEvent[]>()
+    displayEvents.forEach(event => {
+      const dateKey = `${event.date.getFullYear()}-${event.date.getMonth()}-${event.date.getDate()}`
+      if (!eventMap.has(dateKey)) {
+        eventMap.set(dateKey, [])
+      }
+      eventMap.get(dateKey)!.push(event)
+    })
+    
+    return (date: Date) => {
+      const dateKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+      return eventMap.get(dateKey) || []
+    }
+  }, [displayEvents])
+
+  // Sync events in background when component mounts or month changes
+  useEffect(() => {
+    // Sync silently in background - don't wait for it
+    syncEvents().catch(err => {
+      // Silently fail - we'll show mock data instead
+    })
+  }, [year, month])
 
   const getEventTypeIcon = (type: CalendarEvent['type']) => {
     switch (type) {
@@ -144,13 +194,14 @@ export default function CalendarMonthClient({ year, month }: CalendarMonthClient
   const currentDate = new Date(year, month - 1, 1)
   const monthName = currentDate.toLocaleString('default', { month: 'long' })
 
+
   return (
     <div className="flex h-full">
       {/* Main Calendar View */}
       <div className="flex-1">
         <MonthView 
           date={currentDate}
-          events={mockEvents}
+          events={displayEvents}
           onDateSelect={setSelectedDate}
         />
       </div>
@@ -224,6 +275,22 @@ export default function CalendarMonthClient({ year, month }: CalendarMonthClient
                 <p className="text-sm text-muted-foreground">No events scheduled</p>
                 <Button variant="outline" size="sm" className="mt-3">
                   Add Event
+                </Button>
+              </div>
+            )}
+            
+            {error && (
+              <div className="text-center py-4">
+                <p className="text-sm text-muted-foreground mb-2">
+                  Failed to load calendar events
+                </p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => syncEvents()}
+                  disabled={loading}
+                >
+                  Retry
                 </Button>
               </div>
             )}

@@ -11,6 +11,7 @@ import {
   CommandList,
   CommandGroup,
   CommandItem,
+  CommandEmpty,
 } from "@/components/ui/command";
 import {
   Search,
@@ -31,14 +32,10 @@ import {
   Share,
   CheckSquare,
   Table,
-  Code,
   BookOpen,
   Mail,
   MessageSquare,
   Menu,
-  TrendingUp,
-  CreditCard,
-  Activity,
   Inbox,
   Star,
   Send,
@@ -56,14 +53,14 @@ import {
   LineChart,
   PlayCircle,
   Database,
-  Wallet,
-  ArrowUpRight,
-  PiggyBank,
   Grid3X3,
   List,
+  ArrowUp,
+  Activity,
 } from "lucide-react";
 import { SpawnAgentDialog } from "@/components/dialogs/spawn-agent-dialog";
 import { useCommandRegistry } from "@/contexts/command-registry";
+import { CommandChat } from "@/components/chat/command-chat";
 
 // Types
 interface AppItem {
@@ -101,37 +98,27 @@ interface SettingsItem {
 type AppPage =
   | "home"
   | "agent"
-  | "editor"
   | "calendar"
   | "terminal"
   | "connections"
   | "files"
   | "tasks"
   | "sheets"
-  | "ide"
   | "notes"
   | "mail"
-  | "portfolio"
-  | "quant"
-  | "bank"
   | "settings";
 
 // Constants
 const PAGE_TITLES: Record<AppPage, string> = {
   agent: "Agent Inbox",
-  editor: "Editor",
   calendar: "Calendar",
   terminal: "Terminal",
   connections: "Connections",
   files: "Files",
   tasks: "Tasks",
   sheets: "Sheets",
-  ide: "IDE",
   notes: "Notes",
   mail: "Mail",
-  portfolio: "Portfolio",
-  quant: "Quant",
-  bank: "Bank",
   settings: "Settings",
   home: "Home",
 };
@@ -139,19 +126,14 @@ const PAGE_TITLES: Record<AppPage, string> = {
 const SEARCHABLE_APPS: AppItem[] = [
   { name: "Home", path: "/", icon: Home, type: "app" },
   { name: "Agent Inbox", path: "/agent", icon: Bot, type: "app" },
-  { name: "Editor", path: "/editor", icon: FileText, type: "app" },
   { name: "Calendar", path: "/calendar", icon: Calendar, type: "app" },
   { name: "Terminal", path: "/terminal", icon: Terminal, type: "app" },
   { name: "Connections", path: "/connections", icon: Link2, type: "app" },
   { name: "Files", path: "/files", icon: FileText, type: "app" },
   { name: "Tasks", path: "/tasks", icon: CheckSquare, type: "app" },
   { name: "Sheets", path: "/sheets", icon: Table, type: "app" },
-  { name: "IDE", path: "/ide", icon: Code, type: "app" },
   { name: "Notes", path: "/notes", icon: BookOpen, type: "app" },
   { name: "Mail", path: "/mail", icon: Mail, type: "app" },
-  { name: "Portfolio", path: "/portfolio", icon: TrendingUp, type: "app" },
-  { name: "Quant", path: "/quant", icon: Activity, type: "app" },
-  { name: "Bank", path: "/bank", icon: CreditCard, type: "app" },
   { name: "Settings", path: "/settings", icon: Settings, type: "app" },
 ];
 
@@ -577,50 +559,6 @@ const getAppCommands = (
         actionType: "immediate",
       },
     ],
-    ide: [
-      {
-        name: "New Project",
-        icon: Plus,
-        action: () => console.log("New Project"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "New File",
-        icon: FileText,
-        action: () => console.log("New File"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "New Workspace",
-        icon: Code,
-        action: () => console.log("New Workspace"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "Clone Repository",
-        icon: Download,
-        action: () => console.log("Clone Repository"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "Open Project",
-        icon: Upload,
-        action: () => console.log("Open Project"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "Save All",
-        icon: Download,
-        action: () => console.log("Save All"),
-        type: "command",
-        actionType: "immediate",
-      },
-    ],
     notes: [
       {
         name: "New Note",
@@ -691,124 +629,6 @@ const getAppCommands = (
         name: "Empty Trash",
         icon: Trash2,
         action: () => console.log("Empty Trash"),
-        type: "command",
-        actionType: "immediate",
-      },
-    ],
-    portfolio: [
-      {
-        name: "View Holdings",
-        icon: TrendingUp,
-        action: () => console.log("View Holdings"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "Add Investment",
-        icon: Plus,
-        action: () => console.log("Add Investment"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "Export Portfolio",
-        icon: Download,
-        action: () => console.log("Export Portfolio"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "Portfolio Analytics",
-        icon: TrendingUp,
-        action: () => console.log("Portfolio Analytics"),
-        type: "command",
-        actionType: "immediate",
-      },
-    ],
-    quant: [
-      {
-        name: "New Algorithm",
-        icon: Plus,
-        action: () => console.log("New Algorithm"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "Backtest Strategy",
-        icon: Activity,
-        action: () => console.log("Backtest Strategy"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "Live Trading",
-        icon: TrendingUp,
-        action: () => console.log("Live Trading"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "Risk Analysis",
-        icon: Activity,
-        action: () => console.log("Risk Analysis"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "Performance Metrics",
-        icon: TrendingUp,
-        action: () => console.log("Performance Metrics"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "Market Data",
-        icon: Activity,
-        action: () => console.log("Market Data"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "Export Model",
-        icon: Download,
-        action: () => console.log("Export Model"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "Import Dataset",
-        icon: Upload,
-        action: () => console.log("Import Dataset"),
-        type: "command",
-        actionType: "immediate",
-      },
-    ],
-    bank: [
-      {
-        name: "Transfer Money",
-        icon: CreditCard,
-        action: () => console.log("Transfer Money"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "Pay Bills",
-        icon: CreditCard,
-        action: () => console.log("Pay Bills"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "View Statements",
-        icon: FileText,
-        action: () => console.log("View Statements"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "Export Transactions",
-        icon: Download,
-        action: () => console.log("Export Transactions"),
         type: "command",
         actionType: "immediate",
       },
@@ -1081,7 +901,7 @@ const getAppSections = (pathname: string): CommandItem[] => {
       },
       {
         name: "Development",
-        icon: Code,
+        icon: Terminal,
         type: "command",
         actionType: "immediate",
         action: () => console.log("Navigate to Development"),
@@ -1108,87 +928,11 @@ const getAppSections = (pathname: string): CommandItem[] => {
         action: () => console.log("Navigate to Cloud"),
       },
     ],
-    quant: [
-      {
-        name: "Dashboard",
-        icon: BarChart3,
-        type: "command",
-        actionType: "immediate",
-        action: () => console.log("Navigate to Dashboard"),
-      },
-      {
-        name: "Strategies",
-        icon: Target,
-        type: "command",
-        actionType: "immediate",
-        action: () => console.log("Navigate to Strategies"),
-      },
-      {
-        name: "Backtesting",
-        icon: LineChart,
-        type: "command",
-        actionType: "immediate",
-        action: () => console.log("Navigate to Backtesting"),
-      },
-      {
-        name: "Live Trading",
-        icon: PlayCircle,
-        type: "command",
-        actionType: "immediate",
-        action: () => console.log("Navigate to Live Trading"),
-      },
-      {
-        name: "Market Data",
-        icon: Database,
-        type: "command",
-        actionType: "immediate",
-        action: () => console.log("Navigate to Market Data"),
-      },
-      {
-        name: "Risk Analysis",
-        icon: AlertCircle,
-        type: "command",
-        actionType: "immediate",
-        action: () => console.log("Navigate to Risk Analysis"),
-      },
-    ],
-    bank: [
-      {
-        name: "Accounts",
-        icon: Wallet,
-        type: "command",
-        actionType: "immediate",
-        action: () => console.log("Navigate to Accounts"),
-      },
-      {
-        name: "Cards",
-        icon: CreditCard,
-        type: "command",
-        actionType: "immediate",
-        action: () => console.log("Navigate to Cards"),
-      },
-      {
-        name: "Transfers",
-        icon: ArrowUpRight,
-        type: "command",
-        actionType: "immediate",
-        action: () => console.log("Navigate to Transfers"),
-      },
-      {
-        name: "Savings",
-        icon: PiggyBank,
-        type: "command",
-        actionType: "immediate",
-        action: () => console.log("Navigate to Savings"),
-      },
-    ],
     home: [],
     editor: [],
     terminal: [],
     files: [],
     sheets: [],
-    ide: [],
-    portfolio: [],
     settings: [],
   };
   
@@ -1205,6 +949,9 @@ const useCommandDialog = () => {
   const [showResults, setShowResults] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [forceShowGreetingList, setForceShowGreetingList] = useState(false);
+  const [showNoMatchIndicator, setShowNoMatchIndicator] = useState(false);
+  const [chatMode, setChatMode] = useState(false);
+  const [chatMessage, setChatMessage] = useState("");
 
   // Multi-level dialog state
   const [dialogLevel, setDialogLevel] = useState(0);
@@ -1260,6 +1007,9 @@ const useCommandDialog = () => {
     setSearch("");
     setShowResults(false);
     setForceShowGreetingList(false);
+    setShowNoMatchIndicator(false);
+    setChatMode(false);
+    setChatMessage("");
     setDialogLevel(0);
     setDialogHistory([]);
     setCurrentDialogData(null);
@@ -1280,6 +1030,12 @@ const useCommandDialog = () => {
     isJustBackslash,
     forceShowGreetingList,
     setForceShowGreetingList,
+    showNoMatchIndicator,
+    setShowNoMatchIndicator,
+    chatMode,
+    setChatMode,
+    chatMessage,
+    setChatMessage,
     dialogLevel,
     dialogHistory,
     currentDialogData,
@@ -1314,6 +1070,12 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
     isJustBackslash,
     forceShowGreetingList,
     setForceShowGreetingList,
+    showNoMatchIndicator,
+    setShowNoMatchIndicator,
+    chatMode,
+    setChatMode,
+    chatMessage,
+    setChatMessage,
     dialogLevel,
     currentDialogData,
     navigateToDialog,
@@ -1323,7 +1085,9 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
 
   // Computed values
   const getPlaceholder = () => {
-    if (isSlashCommand) {
+    if (chatMode && !chatMessage) {
+      return "Ask me anything...";
+    } else if (isSlashCommand) {
       return getGreeting();
     } else if (isBackslashCommand) {
       return "Search Global Settings...";
@@ -1445,7 +1209,7 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
   const shouldShowResults =
     ((isSlashCommand && (search.length > 1 || (isJustSlash && forceShowGreetingList)) && (filteredItems.length > 0 || filteredSections.length > 0 || filteredCommands.length > 0 || filteredSettings.length > 0)) ||
      (isBackslashCommand && filteredSettings.length > 0) ||
-     (!isSlashCommand && !isBackslashCommand && (filteredSections.length > 0 || filteredCommands.length > 0))) &&
+     (!isSlashCommand && !isBackslashCommand && (filteredSections.length > 0 || filteredCommands.length > 0 || appDynamicSections.length > 0 || appDynamicViewModes.length > 0 || appDynamicCommands.length > 0))) &&
     (showResults || (!isSlashCommand && !isBackslashCommand));
 
   // Smooth spring animation for corner radius (SwiftUI-style)
@@ -1507,10 +1271,25 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
       // Backslash command mode - always square corners
       targetWidth = 400;
       targetCornerRadius = 10;
-    } else {
-      // Regular cmd+k mode - always full size
+    } else if (chatMode && !chatMessage) {
+      // Chat mode but no message sent yet - stay compact and rounded
+      targetWidth = 380;
+      targetCornerRadius = 100; // Full rounded for pill shape
+    } else if (chatMode && chatMessage) {
+      // Chat mode with messages - full size with square corners
       targetWidth = 512;
       targetCornerRadius = 10;
+    } else {
+      // Regular cmd+k mode
+      if (shouldShowResults) {
+        // Showing results - full size with square corners
+        targetWidth = 512;
+        targetCornerRadius = 10;
+      } else {
+        // No results - stay compact and rounded
+        targetWidth = 380;
+        targetCornerRadius = 100; // Full rounded for pill shape
+      }
     }
 
     // Override for dialog levels
@@ -1521,7 +1300,7 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
 
     setCornerRadius(targetCornerRadius);
     animatedWidth.set(targetWidth);
-  }, [search, shouldShowResults, dialogLevel, isSlashCommand, isBackslashCommand, isJustSlash, isJustBackslash, open, forceShowGreetingList]);
+  }, [search, shouldShowResults, dialogLevel, isSlashCommand, isBackslashCommand, isJustSlash, isJustBackslash, open, forceShowGreetingList, chatMode, chatMessage]);
 
   const topHit = isSlashCommand
     ? filteredItems.length > 0
@@ -1709,11 +1488,36 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
     return () => document.removeEventListener("keydown", handleKeyDown, true);
   }, [setOpen, setSearch, setShowResults, open]);
 
+  // Show no-match indicator after 1 second when there are no results
+  useEffect(() => {
+    // Only hide indicator if conditions don't match
+    if (search.length === 0 || shouldShowResults || topHit) {
+      setShowNoMatchIndicator(false);
+      return;
+    }
+    
+    // Show indicator after delay only if not already showing
+    if (search.length > 0 && !shouldShowResults && !topHit && !showNoMatchIndicator) {
+      const timer = setTimeout(() => {
+        setShowNoMatchIndicator(true);
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [search, shouldShowResults, topHit, showNoMatchIndicator, setShowNoMatchIndicator]);
+
   // Render dialog content based on level
   const renderDialogContent = () => {
     if (dialogLevel === 1 && currentDialogData) {
       const DialogComponent = currentDialogData.dialogConfig.component;
       return <DialogComponent onBack={navigateBack} onComplete={closeDialog} />;
+    }
+
+    if (chatMode && chatMessage) {
+      return <CommandChat userMessage={chatMessage} onClose={() => {
+        setChatMode(false);
+        setChatMessage("");
+      }} />;
     }
 
     return renderCommandList();
@@ -1722,6 +1526,7 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
   // Render command list items
   const renderCommandList = () => {
     if (!shouldShowResults) return null;
+
 
     if (isSlashCommand) {
       return (
@@ -1995,7 +1800,9 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
       cornerRadius={cornerRadius}
       animatedWidth={animatedWidthSpring}
       isCompact={
-        isSlashCommand && (isJustSlash || (!shouldShowResults && search.length <= 1))
+        (isSlashCommand && (isJustSlash || (!shouldShowResults && search.length <= 1))) ||
+        (chatMode && !chatMessage) ||
+        (!isSlashCommand && !isBackslashCommand && !chatMode && !shouldShowResults)
       }
       dialogWidth={
         dialogLevel > 0 && currentDialogData?.dialogConfig?.width
@@ -2019,17 +1826,21 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
           style={{ outline: "none !important" }}
         >
           {dialogLevel === 0 ? (
-            shouldShowResults && (
+            chatMode && chatMessage ? (
+              <div className="h-96">
+                {renderDialogContent()}
+              </div>
+            ) : shouldShowResults ? (
               <CommandList className="px-1 pt-2 pb-0">
                 {renderCommandList()}
               </CommandList>
-            )
+            ) : null
           ) : (
             <div>{renderDialogContent()}</div>
           )}
         </motion.div>
 
-        {dialogLevel === 0 && (
+        {dialogLevel === 0 && !(chatMode && chatMessage) && (
           <div className="relative">
             <CommandInput
               placeholder={getPlaceholder()}
@@ -2100,10 +1911,18 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
                   e.key === "Tab" &&
                   e.shiftKey
                 ) {
-                  // Shift+Tab cycles through modes
+                  // Shift+Tab cycles through modes: regular → chat → slash → backslash → regular
                   e.preventDefault();
-                  if (!isSlashCommand && !isBackslashCommand) {
-                    // From regular mode to slash command
+                  if (!isSlashCommand && !isBackslashCommand && !chatMode) {
+                    // From regular mode to chat mode (but don't send message yet)
+                    setChatMode(true);
+                    setChatMessage(""); // Clear any pending message
+                    setSearch(""); // Clear search
+                    setShowResults(false); // Don't show results
+                  } else if (chatMode) {
+                    // From chat mode to slash command
+                    setChatMode(false);
+                    setChatMessage("");
                     setSearch("/");
                     setShowResults(false);
                   } else if (isSlashCommand) {
@@ -2111,7 +1930,7 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
                     setSearch("\\");
                     setShowResults(false);
                   } else if (isBackslashCommand) {
-                    // From backslash command to regular mode
+                    // From backslash command back to regular mode
                     setSearch("");
                     setShowResults(true);
                   }
@@ -2150,6 +1969,19 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
                       closeDialog();
                     }
                   }
+                } else if (
+                  e.key === "Enter" &&
+                  !topHit &&
+                  getDisplayValue().length > 0 &&
+                  !showResults
+                ) {
+                  // No matches found, enter chat mode
+                  e.preventDefault();
+                  setChatMessage(getDisplayValue());
+                  setChatMode(true);
+                  setSearch(""); // Clear the input
+                  setShowResults(false); // Prevent showing results
+                  setShowNoMatchIndicator(false); // Hide the send button
                 } else if (
                   (e.key === "ArrowDown" || e.key === "ArrowUp") &&
                   isJustSlash &&
@@ -2210,6 +2042,43 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
                           className="h-4 w-4 text-muted-foreground"
                         />
                       </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            {/* No match indicator - show arrow up button */}
+            {showNoMatchIndicator && getDisplayValue().length > 0 && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center cursor-pointer pointer-events-auto hover:bg-primary/20 transition-colors"
+                      onClick={() => {
+                        // Enter chat mode with current input - don't show results
+                        setChatMessage(getDisplayValue());
+                        setChatMode(true);
+                        setSearch(""); // Clear the input
+                        setShowResults(false); // Prevent showing results
+                        setShowNoMatchIndicator(false); // Hide the button
+                      }}
+                    >
+                      <ArrowUp className="h-3 w-3 text-primary" />
+                    </div>
+                  </div>
+                </div>
+              )}
+            {/* Chat mode unfocused arrow button */}
+            {chatMode && !chatMessage && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-6 h-6 rounded-full bg-muted/50 flex items-center justify-center cursor-pointer pointer-events-auto hover:bg-primary/10 transition-colors"
+                      onClick={() => {
+                        // Enter chat mode with current input
+                        setChatMessage(getDisplayValue() || "Hi");
+                        setSearch(""); // Clear the input
+                      }}
+                    >
+                      <ArrowUp className="h-3 w-3 text-muted-foreground" />
                     </div>
                   </div>
                 </div>

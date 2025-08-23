@@ -15,13 +15,9 @@ import {
   FolderOpen,
   CheckSquare,
   Table,
-  Code,
   BookOpen,
   Mail,
   Settings,
-  TrendingUp,
-  CreditCard,
-  Activity,
 } from "lucide-react"
 
 const sidebarItems = [
@@ -30,12 +26,6 @@ const sidebarItems = [
     label: "Agent Inbox",
     icon: Bot,
     href: "/agent",
-  },
-  {
-    id: "editor",
-    label: "Editor",
-    icon: FileText,
-    href: "/editor",
   },
   {
     id: "calendar",
@@ -74,12 +64,6 @@ const sidebarItems = [
     href: "/sheets",
   },
   {
-    id: "ide",
-    label: "IDE",
-    icon: Code,
-    href: "/ide",
-  },
-  {
     id: "notes",
     label: "Notes",
     icon: BookOpen,
@@ -90,24 +74,6 @@ const sidebarItems = [
     label: "Mail",
     icon: Mail,
     href: "/mail",
-  },
-  {
-    id: "portfolio",
-    label: "Portfolio",
-    icon: TrendingUp,
-    href: "/portfolio",
-  },
-  {
-    id: "quant",
-    label: "Quant",
-    icon: Activity,
-    href: "/quant",
-  },
-  {
-    id: "bank",
-    label: "Bank",
-    icon: CreditCard,
-    href: "/bank",
   },
   {
     id: "settings",

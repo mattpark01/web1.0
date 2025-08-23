@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Integration } from "@/lib/agent-runtime-api";
 import { PermissionDisplay } from "./permission-display";
 import { CachedImage } from "@/components/ui/cached-image";
+import { PlaceholderLogo } from "@/components/ui/placeholder-logo";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -44,10 +45,10 @@ export function PermissionConsentModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <Shield className="h-5 w-5 text-primary" />
-            Review Permissions
+            What would you like to share?
           </DialogTitle>
           <DialogDescription>
-            {integration.name} is requesting access to your data
+            Choose what data you want to give {integration.name} access to
           </DialogDescription>
         </DialogHeader>
 
@@ -58,7 +59,12 @@ export function PermissionConsentModal({
               src={integration.iconUrl}
               alt={integration.name}
               className="w-12 h-12 object-contain"
-              fallback={<span className="text-2xl">{integration.icon}</span>}
+              fallback={
+                <PlaceholderLogo 
+                  name={integration.name} 
+                  size={48}
+                />
+              }
             />
             <div className="flex-1">
               <h3 className="font-semibold">{integration.name}</h3>
@@ -78,10 +84,10 @@ export function PermissionConsentModal({
               <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-red-600 dark:text-red-400">
-                  This integration requests sensitive permissions
+                  This connection wants access to sensitive data
                 </p>
                 <p className="text-xs text-red-600/80 dark:text-red-400/80 mt-1">
-                  Review carefully before granting access. These permissions allow significant access to your data.
+                  Review carefully before sharing. These permissions give significant access to your information.
                 </p>
               </div>
             </div>
@@ -105,11 +111,11 @@ export function PermissionConsentModal({
                   Important Information:
                 </p>
                 <ul className="space-y-1 text-blue-600/80 dark:text-blue-400/80">
-                  <li>• You can revoke access at any time from your Connections settings</li>
+                  <li>• You can stop sharing data at any time from your Connections settings</li>
                   <li>• {integration.provider} will handle your data according to their privacy policy</li>
-                  <li>• Only grant access to integrations you trust</li>
+                  <li>• Only share data with services you trust</li>
                   {integration.authType === 'oauth2' && (
-                    <li>• You'll be redirected to {integration.provider} to complete authorization</li>
+                    <li>• You'll be redirected to {integration.provider} to complete the connection</li>
                   )}
                   {integration.authType === 'api_key' && (
                     <li>• You'll need to provide an API key from {integration.provider}</li>
@@ -130,7 +136,7 @@ export function PermissionConsentModal({
               htmlFor="consent"
               className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              I understand and agree to grant {integration.name} the requested permissions
+              I want to share this data with {integration.name}
             </label>
           </div>
         </div>
@@ -155,7 +161,7 @@ export function PermissionConsentModal({
               hasHighRiskPermissions && "bg-red-600 hover:bg-red-700"
             )}
           >
-            {hasHighRiskPermissions ? "Grant Access" : "Connect"}
+            {hasHighRiskPermissions ? "Share Data" : "Connect"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -50,8 +50,9 @@ import { Superellipse } from "@/components/ui/superellipse/superellipse";
 import { cn } from "@/lib/utils";
 import { useIntegrations } from "@/hooks/use-integrations";
 import { Integration, AppPlatform, agentRuntimeAPI } from "@/lib/agent-runtime-api";
-import { IntegrationManager } from "@/components/connections/integration-manager";
+import { ConnectedIntegrations } from "@/components/connections/connected-integrations";
 import { CachedImage } from "@/components/ui/cached-image";
+import { PlaceholderLogo } from "@/components/ui/placeholder-logo";
 import { PermissionDisplay } from "@/components/connections/permission-display";
 import { PermissionConsentModal } from "@/components/connections/permission-consent-modal";
 
@@ -111,9 +112,63 @@ export default function ConnectionsPage() {
   }, []);
 
   const handleInstall = async (integration: Integration) => {
-    // Show permission consent modal first
-    setPendingInstallation(integration);
-    setPermissionModalOpen(true);
+    // For OAuth providers, start the flow directly
+    if (integration.authType === 'oauth2') {
+      setInstallingId(integration.id);
+      
+      try {
+        const response = await fetch('/api/connections/install', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            providerId: integration.id,
+            redirectUri: window.location.origin + '/api/connections/oauth/callback'
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.authUrl) {
+          // Open OAuth in popup or redirect
+          const width = 600;
+          const height = 700;
+          const left = window.screen.width / 2 - width / 2;
+          const top = window.screen.height / 2 - height / 2;
+          
+          const popup = window.open(
+            result.authUrl,
+            'oauth',
+            `width=${width},height=${height},left=${left},top=${top}`
+          );
+          
+          // Listen for OAuth completion
+          const checkPopup = setInterval(() => {
+            if (popup?.closed) {
+              clearInterval(checkPopup);
+              setInstallingId(null);
+              // Refresh the page or update state to show connection
+              window.location.reload();
+            }
+          }, 1000);
+        } else if (result.error) {
+          console.error('Installation error:', result.error);
+          alert(`Failed to connect: ${result.error}`);
+        }
+      } catch (error) {
+        console.error('Installation failed:', error);
+        alert('Failed to connect integration');
+      } finally {
+        setInstallingId(null);
+      }
+    } else if (integration.authType === 'api_key') {
+      // Show API key modal
+      setApiKeyIntegrationId(integration.id);
+      setApiKeyModalOpen(true);
+    } else {
+      // Show permission consent modal for other types
+      setPendingInstallation(integration);
+      setPermissionModalOpen(true);
+    }
   };
 
   const handlePermissionConfirm = async () => {
@@ -148,12 +203,30 @@ export default function ConnectionsPage() {
     if (!apiKeyIntegrationId || !apiKey) return;
     
     try {
-      await agentRuntimeAPI.provideApiKey(apiKeyIntegrationId, apiKey);
-      setApiKeyModalOpen(false);
-      setApiKey("");
-      setApiKeyIntegrationId(null);
+      const response = await fetch('/api/connections/configure-apikey', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          providerId: apiKeyIntegrationId,
+          apiKey: apiKey,
+          // Add apiSecret if needed for certain providers
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setApiKeyModalOpen(false);
+        setApiKey("");
+        setApiKeyIntegrationId(null);
+        // Refresh to show connected status
+        window.location.reload();
+      } else {
+        alert(`Failed to configure API key: ${result.error}`);
+      }
     } catch (err) {
       console.error("Failed to configure API key:", err);
+      alert("Failed to configure API key");
     }
   };
 
@@ -163,7 +236,7 @@ export default function ConnectionsPage() {
   const sidebarItems: AppSidebarItem[] = [
     {
       id: "all",
-      label: "All Integrations",
+      label: "All Connections",
       icon: Server,
       count: loadingCounts ? undefined : allIntegrations.length,
       isActive: selectedPlatform === "all",
@@ -218,13 +291,13 @@ export default function ConnectionsPage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <h1 className="text-2xl font-bold">
-                {activeTab === "marketplace" ? "Integration Marketplace" : "Your Connections"}
+                {activeTab === "marketplace" ? "Connection Marketplace" : "Your Connections"}
               </h1>
               {activeTab === "marketplace" && loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : activeTab === "marketplace" ? (
                 <span className="text-sm text-muted-foreground">
-                  {integrations.length} integrations available
+                  {integrations.length} connections available
                 </span>
               ) : null}
             </div>
@@ -252,7 +325,7 @@ export default function ConnectionsPage() {
                   )}
                 >
                   <Settings className="h-4 w-4" />
-                  Installed
+                  Connected
                 </button>
               </div>
             </div>
@@ -264,7 +337,7 @@ export default function ConnectionsPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
                   type="text"
-                  placeholder="Search integrations..."
+                  placeholder="Search connections..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 bg-muted/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -307,7 +380,7 @@ export default function ConnectionsPage() {
 
         <div className="flex-1 overflow-auto p-4">
           {activeTab === "installed" ? (
-            <IntegrationManager className="mt-4" />
+            <ConnectedIntegrations />
           ) : (
             <>
               {error && (
@@ -324,11 +397,11 @@ export default function ConnectionsPage() {
               ) : integrations.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 text-center">
                   <Package className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Integrations Available</h3>
+                  <h3 className="text-lg font-semibold mb-2">No Connections Available</h3>
                   <p className="text-muted-foreground max-w-md">
                     {selectedPlatform === "all" 
-                      ? "No integrations are currently available in the marketplace."
-                      : `No integrations are currently available for the ${
+                      ? "No connections are currently available in the marketplace."
+                      : `No connections are currently available for the ${
                           platforms.find(p => p.id === selectedPlatform)?.name || selectedPlatform
                         } platform.`}
                   </p>
@@ -336,10 +409,10 @@ export default function ConnectionsPage() {
               ) : viewMode === "grid" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {integrations.map((integration) => (
-                <Superellipse key={integration.id} cornerRadius={12} cornerSmoothing={1} className="min-h-[200px]" style={{ display: 'block', width: '100%', height: '100%' }}>
+                <Superellipse key={integration.id} cornerRadius={12} cornerSmoothing={1} className="min-h-[280px]" style={{ display: 'flex', width: '100%', height: '100%' }}>
                   <div 
                     className={cn(
-                      "p-4 bg-muted/10 hover:bg-muted/20 cursor-pointer h-full",
+                      "p-4 bg-muted/10 hover:bg-muted/20 cursor-pointer w-full flex flex-col",
                       selectedIntegration?.id === integration.id && "bg-primary/5"
                     )}
                     onClick={() => setSelectedIntegration(integration)}
@@ -350,7 +423,12 @@ export default function ConnectionsPage() {
                           src={integration.iconUrl}
                           alt={integration.name}
                           className="w-12 h-12 object-contain"
-                          fallback={<span>{integration.icon}</span>}
+                          fallback={
+                            <PlaceholderLogo 
+                              name={integration.name} 
+                              size={48}
+                            />
+                          }
                         />
                       </div>
                       <div className="flex items-center gap-1">
@@ -407,7 +485,7 @@ export default function ConnectionsPage() {
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between">
+                    <div className="mt-auto pt-3 flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">
                         v{integration.version}
                       </span>
@@ -417,7 +495,7 @@ export default function ConnectionsPage() {
                           className="px-3 py-1.5 bg-muted/20 text-muted-foreground text-xs rounded-lg flex items-center gap-1"
                         >
                           <Check className="h-3 w-3" />
-                          Installed
+                          Connected
                         </button>
                       ) : (
                         <button
@@ -435,7 +513,7 @@ export default function ConnectionsPage() {
                           ) : (
                             <Download className="h-3 w-3" />
                           )}
-                          Install
+                          Connect
                         </button>
                       )}
                     </div>
@@ -460,7 +538,12 @@ export default function ConnectionsPage() {
                           src={integration.iconUrl}
                           alt={integration.name}
                           className="w-10 h-10 object-contain"
-                          fallback={<span>{integration.icon}</span>}
+                          fallback={
+                            <PlaceholderLogo 
+                              name={integration.name} 
+                              size={40}
+                            />
+                          }
                         />
                       </div>
                       <div className="flex-1">
@@ -532,7 +615,7 @@ export default function ConnectionsPage() {
                             className="px-4 py-2 bg-muted/20 text-muted-foreground text-sm rounded-lg flex items-center gap-1"
                           >
                             <Check className="h-4 w-4" />
-                            Installed
+                            Connected
                           </button>
                         ) : (
                           <button
@@ -550,7 +633,7 @@ export default function ConnectionsPage() {
                             ) : (
                               <Download className="h-4 w-4" />
                             )}
-                            Install
+                            Connect
                           </button>
                         )}
                       </div>
@@ -575,7 +658,12 @@ export default function ConnectionsPage() {
                     src={selectedIntegration.iconUrl}
                     alt={selectedIntegration.name}
                     className="w-8 h-8 object-contain"
-                    fallback={<span>{selectedIntegration.icon}</span>}
+                    fallback={
+                      <PlaceholderLogo 
+                        name={selectedIntegration.name} 
+                        size={32}
+                      />
+                    }
                   />
                 </div>
                 <h2 className="font-semibold">{selectedIntegration.name}</h2>
@@ -746,7 +834,7 @@ export default function ConnectionsPage() {
                   ) : (
                     <Download className="h-4 w-4" />
                   )}
-                  Install Integration
+                  Connect
                 </button>
                 {selectedIntegration.documentationUrl && (
                   <a
@@ -782,7 +870,7 @@ export default function ConnectionsPage() {
           <div className="bg-background border rounded-lg p-6 w-96">
             <h3 className="text-lg font-semibold mb-4">API Key Required</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              This integration requires an API key to connect. Please enter your API key below.
+              This connection requires an API key to connect. Please enter your API key below.
             </p>
             <input
               type="password"

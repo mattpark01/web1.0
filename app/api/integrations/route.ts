@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { getAuthUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { checkIntegrationHealth } from '@/lib/integrations/core/status'
 
@@ -8,14 +8,14 @@ import { checkIntegrationHealth } from '@/lib/integrations/core/status'
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user) {
+    const user = await getAuthUser(request)
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
     // Fetch user's integrations
     const integrations = await prisma.integration.findMany({
-      where: { userId: session.user.id },
+      where: { userId: user.id },
       orderBy: { createdAt: 'desc' }
     })
     
