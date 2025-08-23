@@ -7,11 +7,11 @@ const prisma = new PrismaClient();
 // GET /api/sheets/[id] - Get specific sheet
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const sheet = await prisma.sheet.findUnique({
-      where: { id: (await context.params).id },
+      where: { id: params.id },
       include: {
         versions: {
           orderBy: { version: 'desc' },
@@ -29,7 +29,7 @@ export async function GET(
     
     // Update last accessed timestamp
     await prisma.sheet.update({
-      where: { id: (await context.params).id },
+      where: { id: params.id },
       data: { lastAccessedAt: new Date() },
     });
     
@@ -46,7 +46,7 @@ export async function GET(
 // PUT /api/sheets/[id] - Update sheet
 export async function PUT(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const body = await request.json();
@@ -57,7 +57,7 @@ export async function PUT(
     
     // Get current sheet for versioning
     const currentSheet = await prisma.sheet.findUnique({
-      where: { id: (await context.params).id },
+      where: { id: params.id },
       include: {
         versions: {
           orderBy: { version: 'desc' },
@@ -78,7 +78,7 @@ export async function PUT(
       const lastVersion = currentSheet.versions[0]?.version || 0;
       await prisma.sheetVersion.create({
         data: {
-          sheetId: (await context.params).id,
+          sheetId: params.id,
           version: lastVersion + 1,
           data: currentSheet.data,
           changedBy: userId,
@@ -89,7 +89,7 @@ export async function PUT(
     
     // Update sheet
     const updatedSheet = await prisma.sheet.update({
-      where: { id: (await context.params).id },
+      where: { id: params.id },
       data: {
         data,
         name,
@@ -112,11 +112,11 @@ export async function PUT(
 // DELETE /api/sheets/[id] - Delete sheet
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     await prisma.sheet.delete({
-      where: { id: (await context.params).id },
+      where: { id: params.id },
     });
     
     return NextResponse.json({ success: true });

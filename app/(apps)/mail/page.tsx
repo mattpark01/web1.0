@@ -273,25 +273,25 @@ Alex`,
       {/* Sidebar */}
       {/* <AppSidebar items={sidebarItems} /> */}
 
-      {/* Main content with split view - list takes 60%, detail takes 40% */}
+      {/* Main content with split view - list takes 35%, detail takes 65% */}
       <div className="flex-1 flex">
-        {/* Email list - left side (larger) */}
-        <div className="flex-[3] min-w-0 flex flex-col border-r border-border">
-          <div className="border-b border-border p-4 bg-background/80 backdrop-blur-sm">
+        {/* Email list - left side (narrower) */}
+        <div className="w-80 min-w-80 max-w-96 flex flex-col border-r border-border">
+          <div className="border-b border-border px-4 py-3 bg-background/80 backdrop-blur-sm">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="font-semibold text-lg">Inbox</h2>
-                <p className="text-sm text-muted-foreground mt-0.5">
+                <h2 className="font-semibold text-base">Inbox</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {mails.filter(m => !m.isRead).length} unread 
                   {mails.filter(m => !m.isRead).length === 1 ? ' message' : ' messages'}
                 </p>
               </div>
               <div className="flex items-center gap-1">
-                <button className="p-2 hover:bg-muted/50 rounded-md transition-colors">
-                  <Archive className="h-4 w-4 text-muted-foreground" />
+                <button className="p-1.5 hover:bg-muted/50 rounded-md transition-colors">
+                  <Archive className="h-3.5 w-3.5 text-muted-foreground" />
                 </button>
-                <button className="p-2 hover:bg-muted/50 rounded-md transition-colors">
-                  <Trash2 className="h-4 w-4 text-muted-foreground" />
+                <button className="p-1.5 hover:bg-muted/50 rounded-md transition-colors">
+                  <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
                 </button>
               </div>
             </div>
@@ -303,9 +303,9 @@ Alex`,
           />
         </div>
 
-        {/* Email detail - right side (smaller) */}
+        {/* Email detail - right side (much wider) */}
         <div className={cn(
-          "flex-[2] min-w-0",
+          "flex-1 min-w-0",
           !selectedMail && "hidden lg:flex"
         )}>
           <MailDetail 

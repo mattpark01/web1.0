@@ -7,11 +7,11 @@ const prisma = new PrismaClient();
 // GET /api/sheets/[id]/export - Export sheet to Excel
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const sheet = await prisma.sheet.findUnique({
-      where: { id: (await context.params).id },
+      where: { id: params.id },
     });
     
     if (!sheet) {

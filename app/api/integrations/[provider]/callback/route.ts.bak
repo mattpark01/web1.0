@@ -7,7 +7,7 @@ import { encryptToken } from '@/lib/integrations/core/encryption'
 // GET /api/integrations/[provider]/callback - OAuth callback
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ provider: string }> }
+  { params }: { params: { provider: string } }
 ) {
   try {
     const user = await getAuthUser(request)
@@ -29,18 +29,18 @@ export async function GET(
     }
 
     // Verify state for CSRF protection
-    const storedState = request.cookies.get(`oauth_state_${(await context.params).provider}`)?.value
+    const storedState = request.cookies.get(`oauth_state_${params.provider}`)?.value
     if (!storedState || storedState !== state) {
       return NextResponse.redirect('/settings/integrations?error=invalid_state')
     }
 
-    const adapter = integrationRegistry.getAdapter((await context.params).provider)
+    const adapter = integrationRegistry.getAdapter(params.provider)
     if (!adapter) {
       return NextResponse.redirect('/settings/integrations?error=provider_not_found')
     }
 
     // Get PKCE verifier if needed
-    const codeVerifier = request.cookies.get(`pkce_verifier_${(await context.params).provider}`)?.value
+    const codeVerifier = request.cookies.get(`pkce_verifier_${params.provider}`)?.value
 
     // Exchange code for tokens using the adapter
     const connection = await adapter.authenticate({
@@ -50,19 +50,43 @@ export async function GET(
     })
 
     // Get provider details
-    const provider = integrationRegistry.getProvider((await context.params).provider)
+    const provider = integrationRegistry.getProvider(params.provider)
     if (!provider) {
       return NextResponse.redirect('/settings/integrations?error=provider_not_found')
     }
 
-    // Note: Provider registry is handled in memory for now
+    // Check if provider exists in database, if not create it
+    let dbProvider = await prisma.integrationProvider.findUnique({
+      where: { slug: params.provider }
+    })
+
+    if (!dbProvider) {
+      dbProvider = await prisma.integrationProvider.create({
+        data: {
+          slug: provider.slug,
+          name: provider.name,
+          description: provider.description,
+          iconUrl: provider.iconUrl,
+          category: provider.category,
+          authType: provider.auth.type,
+          authConfig: provider.auth.config as any,
+          apiBaseUrl: provider.api.baseUrl,
+          apiVersion: provider.api.version,
+          features: provider.features,
+          endpoints: provider.endpoints as any,
+          dataMappings: provider.dataMappings as any,
+          documentationUrl: provider.documentationUrl,
+          isVerified: provider.isVerified || false,
+        }
+      })
+    }
 
     // Save connection to database with encrypted tokens
     await prisma.integration.upsert({
       where: {
         userId_provider_accountId: {
           userId: user.id,
-          provider: (await context.params).provider.toUpperCase().replace('-', '_') as any,
+          provider: params.provider.toUpperCase().replace('-', '_') as any,
           accountId: connection.accountId || '',
         }
       },
@@ -81,7 +105,7 @@ export async function GET(
       },
       create: {
         userId: user.id,
-        provider: (await context.params).provider.toUpperCase().replace('-', '_') as any,
+        provider: params.provider.toUpperCase().replace('-', '_') as any,
         accountId: connection.accountId,
         accountEmail: connection.accountEmail,
         accessToken: encryptToken(connection.credentials.accessToken!),
@@ -97,8 +121,8 @@ export async function GET(
 
     // Clear cookies
     const response = NextResponse.redirect('/settings/integrations?success=connected')
-    response.cookies.delete(`oauth_state_${(await context.params).provider}`)
-    response.cookies.delete(`pkce_verifier_${(await context.params).provider}`)
+    response.cookies.delete(`oauth_state_${params.provider}`)
+    response.cookies.delete(`pkce_verifier_${params.provider}`)
 
     return response
   } catch (error) {

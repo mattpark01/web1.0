@@ -125,7 +125,7 @@ export default function CalendarMonthClient({ year, month }: CalendarMonthClient
         }) : '10:00',
         type: 'meeting' as const,
         location: event.location,
-        attendees: event.attendees?.map(a => a.email || a.name).filter(Boolean),
+        attendees: event.attendees?.map((a: any) => a.email || a.name).filter(Boolean),
         color: event.colorId ? `bg-${event.colorId}-500` : 'bg-blue-500'
       })).filter(event => {
         // Only show events for the current month

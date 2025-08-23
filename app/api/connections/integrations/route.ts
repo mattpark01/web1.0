@@ -137,14 +137,14 @@ export async function GET(request: NextRequest) {
           websiteUrl: integration.websiteUrl,
           supportUrl: integration.supportUrl,
           requiredScopes: integration.requiredScopes,
-          isInstalled: userId && integration.userIntegrations?.length > 0 
-            ? integration.userIntegrations[0].isInstalled 
+          isInstalled: userId && (integration as any).userIntegrations?.length > 0 
+            ? (integration as any).userIntegrations[0].isInstalled 
             : false,
-          isFavorite: userId && integration.userIntegrations?.length > 0
-            ? integration.userIntegrations[0].isFavorite
+          isFavorite: userId && (integration as any).userIntegrations?.length > 0
+            ? (integration as any).userIntegrations[0].isFavorite
             : false,
-          installedAt: userId && integration.userIntegrations?.length > 0
-            ? integration.userIntegrations[0].installedAt?.toISOString()
+          installedAt: userId && (integration as any).userIntegrations?.length > 0
+            ? (integration as any).userIntegrations[0].installedAt?.toISOString()
             : null,
         }))
       } else {

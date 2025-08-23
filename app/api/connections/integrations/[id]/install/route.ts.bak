@@ -127,13 +127,13 @@ export async function POST(
         client_id: config.clientId || '',
         redirect_uri: config.redirectUri,
         response_type: 'code',
-        scope: Array.isArray((config as any).scopes) ? (config as any).scopes.join(' ') : '',
+        scope: Array.isArray(config.scopes) ? config.scopes.join(' ') : '',
         state,
         access_type: 'offline', // For Google
         prompt: 'consent', // For Google
       })
       
-      const authUrl = `${(config as any).authUrl}?${authParams.toString()}`
+      const authUrl = `${config.authUrl}?${authParams.toString()}`
       
       return NextResponse.json({
         installationId,

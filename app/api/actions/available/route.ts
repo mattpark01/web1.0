@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { getAuthUser } from '@/lib/auth'
 import { getUserAvailableTools } from '@/lib/actions/registry'
 
 /**
@@ -9,14 +9,14 @@ import { getUserAvailableTools } from '@/lib/actions/registry'
 export async function GET(request: NextRequest) {
   try {
     // Check for user authentication
-    const session = await auth()
+    const user = await getAuthUser(request)
     
     // Also support API key authentication for agent-runtime
     const apiKey = request.headers.get('x-api-key')
     const userId = request.headers.get('x-user-id')
     
     // Validate authentication
-    if (!session?.user && !apiKey) {
+    if (!user && !apiKey) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Get user ID from session or header
-    const effectiveUserId = session?.user?.id || userId
+    const effectiveUserId = user?.id || userId
     
     if (!effectiveUserId) {
       return NextResponse.json(
@@ -84,18 +84,18 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
+    const user = await getAuthUser(request)
     const apiKey = request.headers.get('x-api-key')
     const userId = request.headers.get('x-user-id')
     
-    if (!session?.user && !apiKey) {
+    if (!user && !apiKey) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
     
-    const effectiveUserId = session?.user?.id || userId
+    const effectiveUserId = user?.id || userId
     
     if (!effectiveUserId) {
       return NextResponse.json(

@@ -36,7 +36,6 @@ export async function GET(request: NextRequest) {
             tasks: true,
             emails: true,
             files: true,
-            agents: true,
           },
         },
       },

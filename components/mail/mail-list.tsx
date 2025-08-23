@@ -53,40 +53,33 @@ export function MailList({ mails, selectedMailId, onSelectMail }: MailListProps)
             ref={(el) => { itemRefs.current[mail.id] = el; }}
             onClick={() => onSelectMail(mail)}
             className={cn(
-              "p-4 hover:bg-muted/30 cursor-pointer border-b border-l-4 border-border",
+              "px-3 py-2.5 hover:bg-muted/30 cursor-pointer border-b border-l-2 border-border transition-colors",
               selectedMailId === mail.id ? "bg-muted/50 border-l-primary shadow-sm" : "border-l-transparent",
               !mail.isRead && "bg-background font-medium"
             )}
           >
-          <div className="flex items-start justify-between mb-2">
-            <div className="flex items-center gap-2">
+          <div className="flex items-start justify-between mb-1">
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
               <span className={cn(
-                "text-sm",
+                "text-xs truncate",
                 !mail.isRead ? "font-semibold" : "font-medium"
               )}>
                 {mail.sender}
               </span>
-              {mail.isStarred && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
+              {mail.isStarred && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500 shrink-0" />}
+              {mail.hasAttachments && <Paperclip className="h-3 w-3 text-muted-foreground shrink-0" />}
             </div>
-            <span className="text-xs text-muted-foreground">{mail.time}</span>
+            <span className="text-xs text-muted-foreground shrink-0 ml-2">{mail.time}</span>
           </div>
           <h3 className={cn(
-            "text-sm mb-1",
+            "text-xs mb-0.5 truncate",
             !mail.isRead ? "font-semibold" : "font-medium"
           )}>
             {mail.subject}
           </h3>
-          <p className="text-xs text-muted-foreground line-clamp-2">
+          <p className="text-xs text-muted-foreground line-clamp-1 leading-tight">
             {mail.preview}
           </p>
-          {mail.hasAttachments && (
-            <div className="flex items-center gap-2 mt-2">
-              <Paperclip className="h-3 w-3 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">
-                {mail.attachmentCount} attachment{mail.attachmentCount !== 1 ? 's' : ''}
-              </span>
-            </div>
-          )}
           </div>
         ))
       )}

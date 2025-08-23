@@ -19,14 +19,14 @@ const updateNoteSchema = z.object({
 // GET /api/notes/[id] - Get a specific note
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuth(request);
 
     const note = await prisma.note.findFirst({
       where: {
-        id: params.id,
+        id: (await context.params).id,
         userId: user.id,
         deletedAt: null,
       },
@@ -90,7 +90,7 @@ export async function GET(
 // PATCH /api/notes/[id] - Update a note
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuth(request);
@@ -100,7 +100,7 @@ export async function PATCH(
     // Check ownership
     const existing = await prisma.note.findFirst({
       where: {
-        id: params.id,
+        id: (await context.params).id,
         userId: user.id,
         deletedAt: null,
       },
@@ -114,7 +114,7 @@ export async function PATCH(
     }
 
     const note = await prisma.note.update({
-      where: { id: params.id },
+      where: { id: (await context.params).id },
       data: {
         ...data,
         updatedAt: new Date(),
@@ -153,7 +153,7 @@ export async function PATCH(
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
+        { error: 'Invalid input', details: error.issues },
         { status: 400 }
       );
     }
@@ -169,7 +169,7 @@ export async function PATCH(
 // DELETE /api/notes/[id] - Delete a note (soft delete)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuth(request);
@@ -177,7 +177,7 @@ export async function DELETE(
     // Check ownership
     const existing = await prisma.note.findFirst({
       where: {
-        id: params.id,
+        id: (await context.params).id,
         userId: user.id,
         deletedAt: null,
       },
@@ -192,7 +192,7 @@ export async function DELETE(
 
     // Soft delete
     await prisma.note.update({
-      where: { id: params.id },
+      where: { id: (await context.params).id },
       data: {
         deletedAt: new Date(),
       },
@@ -204,9 +204,9 @@ export async function DELETE(
         userId: user.id,
         type: 'note.deleted',
         entityType: 'note',
-        entityId: params.id,
+        entityId: (await context.params).id,
         title: `Deleted note: ${existing.title}`,
-        metadata: { noteId: params.id },
+        metadata: { noteId: (await context.params).id },
       },
     });
 

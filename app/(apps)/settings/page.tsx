@@ -38,12 +38,7 @@ export default function SettingsPage() {
                 height={80}
                 cornerRadius={16}
                 cornerSmoothing={0.8}
-                className="bg-blue-100"
-                border={{
-                  width: 2,
-                  color: '#3b82f6',
-                  style: 'solid'
-                }}
+                className="bg-blue-100 border-2 border-blue-600"
               >
                 <div className="flex items-center justify-center h-full text-sm">
                   Solid
@@ -59,12 +54,7 @@ export default function SettingsPage() {
                 height={80}
                 cornerRadius={16}
                 cornerSmoothing={0.8}
-                className="bg-green-100"
-                border={{
-                  width: 3,
-                  color: '#10b981',
-                  style: 'dashed'
-                }}
+                className="bg-green-100 border-3 border-dashed border-green-500"
               >
                 <div className="flex items-center justify-center h-full text-sm">
                   Dashed
@@ -80,12 +70,7 @@ export default function SettingsPage() {
                 height={80}
                 cornerRadius={20}
                 cornerSmoothing={1}
-                className="bg-red-100"
-                border={{
-                  width: 5,
-                  color: '#ef4444',
-                  style: 'solid'
-                }}
+                className="bg-red-100 border-4 border-red-500"
               >
                 <div className="flex items-center justify-center h-full text-sm">
                   Thick
@@ -101,13 +86,7 @@ export default function SettingsPage() {
                 height={80}
                 cornerRadius={12}
                 cornerSmoothing={0.6}
-                className="bg-purple-100"
-                border={{
-                  width: 2,
-                  color: '#8b5cf6',
-                  style: 'dashed',
-                  dashArray: '10,5'
-                }}
+                className="bg-purple-100 border-2 border-dashed border-purple-500"
               >
                 <div className="flex items-center justify-center h-full text-sm">
                   Custom

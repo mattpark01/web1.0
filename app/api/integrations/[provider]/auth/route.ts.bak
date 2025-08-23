@@ -7,7 +7,7 @@ import crypto from 'crypto'
 // GET /api/integrations/[provider]/auth - Start OAuth flow
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ provider: string }> }
+  { params }: { params: { provider: string } }
 ) {
   try {
     const user = await getAuthUser(request)
@@ -15,7 +15,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const provider = integrationRegistry.getProvider((await context.params).provider)
+    const provider = integrationRegistry.getProvider(params.provider)
     if (!provider) {
       return NextResponse.json({ error: 'Provider not found' }, { status: 404 })
     }
@@ -27,9 +27,9 @@ export async function GET(
     const oauth2Config = provider.auth.config as any
     
     // Get client credentials from environment
-    oauth2Config.clientId = process.env[`${(await context.params).provider.toUpperCase().replace('-', '_')}_CLIENT_ID`]
-    oauth2Config.clientSecret = process.env[`${(await context.params).provider.toUpperCase().replace('-', '_')}_CLIENT_SECRET`]
-    oauth2Config.redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/${(await context.params).provider}/callback`
+    oauth2Config.clientId = process.env[`${params.provider.toUpperCase().replace('-', '_')}_CLIENT_ID`]
+    oauth2Config.clientSecret = process.env[`${params.provider.toUpperCase().replace('-', '_')}_CLIENT_SECRET`]
+    oauth2Config.redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/${params.provider}/callback`
 
     if (!oauth2Config.clientId) {
       return NextResponse.json({ error: 'Provider not configured' }, { status: 500 })
@@ -48,7 +48,7 @@ export async function GET(
     )
     
     // Set state in secure cookie
-    response.cookies.set(`oauth_state_${(await context.params).provider}`, state, {
+    response.cookies.set(`oauth_state_${params.provider}`, state, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -58,7 +58,7 @@ export async function GET(
     // Store PKCE verifier if needed
     if (oauth2Config.pkce) {
       const codeVerifier = crypto.randomBytes(32).toString('base64url')
-      response.cookies.set(`pkce_verifier_${(await context.params).provider}`, codeVerifier, {
+      response.cookies.set(`pkce_verifier_${params.provider}`, codeVerifier, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',

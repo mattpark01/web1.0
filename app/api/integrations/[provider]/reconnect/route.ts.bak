@@ -9,7 +9,7 @@ import { refreshIntegrationToken } from '@/lib/integrations/middleware/token-ref
  */
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ provider: string }> }
+  { params }: { params: { provider: string } }
 ) {
   try {
     const session = await getAuthUser(request)
@@ -22,8 +22,8 @@ export async function POST(
     
     // Find the integration
     const where = accountId
-      ? { userId: user.id, provider: (await context.params).provider.toUpperCase().replace('-', '_'), accountId }
-      : { userId: user.id, provider: (await context.params).provider.toUpperCase().replace('-', '_') }
+      ? { userId: user.id, provider: params.provider.toUpperCase().replace('-', '_'), accountId }
+      : { userId: user.id, provider: params.provider.toUpperCase().replace('-', '_') }
     
     const integration = await prisma.integration.findFirst({ where })
     
@@ -52,7 +52,7 @@ export async function POST(
           success: false,
           message: 'Token refresh failed, re-authentication required',
           requiresAuth: true,
-          authUrl: `/api/integrations/${(await context.params).provider}/auth`
+          authUrl: `/api/integrations/${params.provider}/auth`
         })
       }
     } else {
@@ -61,7 +61,7 @@ export async function POST(
         success: false,
         message: 'Re-authentication required',
         requiresAuth: true,
-        authUrl: `/api/integrations/${(await context.params).provider}/auth`
+        authUrl: `/api/integrations/${params.provider}/auth`
       })
     }
     

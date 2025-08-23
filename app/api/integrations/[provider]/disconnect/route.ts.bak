@@ -11,7 +11,7 @@ import { decryptToken } from '@/lib/integrations/core/encryption'
  */
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ provider: string }> }
+  { params }: { params: { provider: string } }
 ) {
   try {
     const user = await getAuthUser(request)
@@ -23,11 +23,10 @@ export async function DELETE(
     const searchParams = request.nextUrl.searchParams
     const accountId = searchParams.get('accountId')
     
-    // Find the integration 
-    const provider = (await context.params).provider.toUpperCase().replace('-', '_') as any
+    // Find the integration
     const where = accountId
-      ? { userId: user.id, provider, accountId }
-      : { userId: user.id, provider }
+      ? { userId: user.id, provider: params.provider.toUpperCase().replace('-', '_'), accountId }
+      : { userId: user.id, provider: params.provider.toUpperCase().replace('-', '_') }
     
     const integration = await prisma.integration.findFirst({ where })
     
@@ -37,11 +36,11 @@ export async function DELETE(
     
     // Try to revoke tokens at provider (best effort)
     try {
-      const provider = integrationRegistry.getProvider((await context.params).provider)
+      const provider = integrationRegistry.getProvider(params.provider)
       if (provider?.auth.type === 'oauth2') {
         const oauth2Config = { ...provider.auth.config } as any
-        oauth2Config.clientId = process.env[`${(await context.params).provider.toUpperCase().replace('-', '_')}_CLIENT_ID`]
-        oauth2Config.clientSecret = process.env[`${(await context.params).provider.toUpperCase().replace('-', '_')}_CLIENT_SECRET`]
+        oauth2Config.clientId = process.env[`${params.provider.toUpperCase().replace('-', '_')}_CLIENT_ID`]
+        oauth2Config.clientSecret = process.env[`${params.provider.toUpperCase().replace('-', '_')}_CLIENT_SECRET`]
         
         const oauth2Client = new OAuth2Client(oauth2Config)
         
@@ -87,7 +86,7 @@ export async function DELETE(
  */
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ provider: string }> }
+  { params }: { params: { provider: string } }
 ) {
   try {
     const user = await getAuthUser(request)
@@ -98,13 +97,12 @@ export async function POST(
     const searchParams = request.nextUrl.searchParams
     const accountId = searchParams.get('accountId')
     
-    const provider2 = (await context.params).provider.toUpperCase().replace('-', '_') as any
-    const where2 = accountId
-      ? { userId: user.id, provider: provider2, accountId }
-      : { userId: user.id, provider: provider2 }
+    const where = accountId
+      ? { userId: user.id, provider: params.provider.toUpperCase().replace('-', '_'), accountId }
+      : { userId: user.id, provider: params.provider.toUpperCase().replace('-', '_') }
     
     const integration = await prisma.integration.update({
-      where: { id: (await prisma.integration.findFirst({ where: where2 }))?.id },
+      where: { id: (await prisma.integration.findFirst({ where }))?.id },
       data: {
         status: 'REVOKED',
         syncEnabled: false,

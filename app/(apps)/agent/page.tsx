@@ -319,7 +319,7 @@ export default function AgentInboxPage() {
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
   
   const gridContainerRef = useRef<HTMLDivElement>(null)
-  const scrollTimeoutRef = useRef<NodeJS.Timeout>()
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   
   const toggleGroupCollapse = (status: Agent['status']) => {
     setCollapsedGroups(prev => {
