@@ -68,7 +68,7 @@ function CommandDialog({
         className="fixed z-[9999] left-1/2 -translate-x-1/2"
         style={{
           bottom:
-            typeof window !== "undefined" && window.chrome ? "3rem" : "4rem",
+            typeof window !== "undefined" && (window as any).chrome ? "3rem" : "4rem",
           width:
             animatedWidth ||
             (isCompact

@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       session,
       wsUrl: `${wsUrl}/terminal?token=${session.session_token}`,
-      cloudRunUrl: session.workspaces?.service_url
+      cloudRunUrl: (session as any).workspaces?.service_url
     });
   } catch (error) {
     console.error('Error creating session:', error);

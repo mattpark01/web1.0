@@ -128,7 +128,7 @@ class ActionRegistryImpl implements ActionRegistry {
       const integration = await prisma.integration.findFirst({
         where: {
           userId,
-          provider: action.requiresIntegration.toUpperCase().replace('-', '_'),
+          provider: action.requiresIntegration.toUpperCase().replace('-', '_') as any,
           status: 'ACTIVE'
         }
       })

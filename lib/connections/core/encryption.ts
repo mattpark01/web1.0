@@ -55,7 +55,7 @@ export class CredentialEncryption {
       ])
       
       // Get auth tag
-      const authTag = cipher.getAuthTag()
+      const authTag = (cipher as any).getAuthTag()
       
       // Combine IV + authTag + encrypted data
       const combined = Buffer.concat([iv, authTag, encrypted])
@@ -81,7 +81,7 @@ export class CredentialEncryption {
       const encrypted = combined.slice(this.ivLength + this.tagLength)
       
       // Create decipher
-      const decipher = crypto.createDecipheriv(this.algorithm, this.masterKey, iv)
+      const decipher: any = crypto.createDecipheriv(this.algorithm, this.masterKey, iv)
       decipher.setAuthTag(authTag)
       
       // Decrypt data

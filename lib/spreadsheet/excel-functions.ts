@@ -57,7 +57,7 @@ export class ExcelFunctions {
     return Math.pow(this.toNumber(number), this.toNumber(power))
   }
   
-  SQRT(number: number): number {
+  SQRT(number: number): number | string {
     const n = this.toNumber(number)
     if (n < 0) return '#NUM!'
     return Math.sqrt(n)
@@ -67,24 +67,24 @@ export class ExcelFunctions {
     return Math.exp(this.toNumber(number))
   }
   
-  LN(number: number): number {
+  LN(number: number): number | string {
     const n = this.toNumber(number)
     if (n <= 0) return '#NUM!'
     return Math.log(n)
   }
   
-  LOG(number: number, base: number = 10): number {
+  LOG(number: number, base: number = 10): number | string {
     const n = this.toNumber(number)
     const b = this.toNumber(base)
     if (n <= 0 || b <= 0 || b === 1) return '#NUM!'
     return Math.log(n) / Math.log(b)
   }
   
-  LOG10(number: number): number {
+  LOG10(number: number): number | string {
     return this.LOG(number, 10)
   }
   
-  MOD(number: number, divisor: number): number {
+  MOD(number: number, divisor: number): number | string {
     const n = this.toNumber(number)
     const d = this.toNumber(divisor)
     if (d === 0) return '#DIV/0!'
@@ -206,7 +206,7 @@ export class ExcelFunctions {
     return str.split(old).join(replacement)
   }
   
-  FIND(findText: string, withinText: string, startNum: number = 1): number {
+  FIND(findText: string, withinText: string, startNum: number = 1): number | string {
     const find = String(findText)
     const within = String(withinText)
     const start = this.toNumber(startNum) - 1
@@ -214,7 +214,7 @@ export class ExcelFunctions {
     return index === -1 ? '#VALUE!' : index + 1
   }
   
-  SEARCH(findText: string, withinText: string, startNum: number = 1): number {
+  SEARCH(findText: string, withinText: string, startNum: number = 1): number | string {
     const find = String(findText).toLowerCase()
     const within = String(withinText).toLowerCase()
     const start = this.toNumber(startNum) - 1
@@ -410,7 +410,7 @@ export class ExcelFunctions {
     return array[row]
   }
   
-  MATCH(lookupValue: any, lookupArray: any[], matchType: number = 1): number {
+  MATCH(lookupValue: any, lookupArray: any[], matchType: number = 1): number | string {
     if (!Array.isArray(lookupArray)) return '#N/A'
     
     if (matchType === 0) {
@@ -507,7 +507,7 @@ export class ExcelFunctions {
     return npv
   }
   
-  IRR(values: number[], guess: number = 0.1): number {
+  IRR(values: number[], guess: number = 0.1): number | string {
     const vals = values.map(v => this.toNumber(v))
     let rate = this.toNumber(guess)
     

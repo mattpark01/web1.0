@@ -27,6 +27,13 @@ export function CachedImage({
       return;
     }
 
+    // Only handle string URLs, not Blob objects
+    if (typeof src !== 'string') {
+      setIsLoading(false);
+      setImageError(false);
+      return;
+    }
+
     // Reset states when src changes
     setImageError(false);
     setIsLoading(true);

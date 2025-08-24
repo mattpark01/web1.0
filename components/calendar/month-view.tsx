@@ -71,7 +71,7 @@ export function MonthView({ date, events, onDateSelect, selectedDate }: MonthVie
           className={`
             min-h-[120px] border-r border-b p-2 cursor-pointer transition-colors
             ${!isCurrentMonth ? 'bg-muted/20' : 'hover:bg-muted/30'}
-            ${currentDate && isSameDay(currentDate, selectedDate) ? 'bg-muted/50' : ''}
+            ${currentDate && selectedDate && isSameDay(currentDate, selectedDate) ? 'bg-muted/50' : ''}
             ${currentDate && isToday(currentDate) ? 'bg-primary/5' : ''}
           `}
           onClick={() => currentDate && onDateSelect?.(currentDate)}
@@ -89,7 +89,6 @@ export function MonthView({ date, events, onDateSelect, selectedDate }: MonthVie
                     key={event.id}
                     cornerRadius={4}
                     className={`text-xs px-1.5 py-0.5 truncate ${event.color} text-white`}
-                    title={`${event.startTime} - ${event.title}`}
                   >
                     <span className="opacity-75">{event.startTime}</span> {event.title}
                   </Superellipse>

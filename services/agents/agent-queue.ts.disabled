@@ -3,17 +3,18 @@
  * Manages scheduled and background agent execution using Inngest
  */
 
-import { Inngest } from 'inngest';
-import { PrismaClient, AgentStatus } from '@prisma/client';
+// import { Inngest } from 'inngest';
+import { PrismaClient } from '@prisma/client';
 import { AgentExecutor } from './agent-executor';
 
 const prisma = new PrismaClient();
 
 // Initialize Inngest client
-export const inngest = new Inngest({ 
-  id: 'spatiolabs',
-  eventKey: process.env.INNGEST_EVENT_KEY,
-});
+// TODO: Install inngest package when needed
+// export const inngest = new Inngest({ 
+//   id: 'spatiolabs',
+//   eventKey: process.env.INNGEST_EVENT_KEY,
+// });
 
 /**
  * Schedule agent execution

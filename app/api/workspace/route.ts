@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { workspaceManager } from '@/services/workspace/workspace-manager';
-import { getServerSession } from 'next-auth/next';
 
 export async function GET(request: NextRequest) {
   try {

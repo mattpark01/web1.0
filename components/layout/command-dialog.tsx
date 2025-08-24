@@ -293,43 +293,6 @@ const getAppCommands = (
         action: () => console.log("Export Chat"),
       },
     ],
-    editor: [
-      {
-        name: "New Editor Document",
-        icon: Plus,
-        action: () => console.log("New Document"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "New Editor Template",
-        icon: FileText,
-        action: () => console.log("New Template"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "Import Document",
-        icon: Upload,
-        action: () => console.log("Import Document"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "Save As",
-        icon: Download,
-        action: () => console.log("Save As"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "Share Document",
-        icon: Share,
-        action: () => console.log("Share Document"),
-        type: "command",
-        actionType: "immediate",
-      },
-    ],
     calendar: [
       {
         name: "New Event",
@@ -386,50 +349,6 @@ const getAppCommands = (
         name: "Export Output",
         icon: Download,
         action: () => console.log("Export Output"),
-        type: "command",
-        actionType: "immediate",
-      },
-    ],
-    store: [
-      {
-        name: "Publish Agent",
-        icon: Plus,
-        action: () => console.log("Publish Agent"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "New Extension",
-        icon: Plus,
-        action: () => console.log("New Extension"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "Browse Marketplace",
-        icon: Search,
-        action: () => console.log("Browse Marketplace"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "My Published Agents",
-        icon: Edit,
-        action: () => console.log("My Published Agents"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "Install Extension",
-        icon: Download,
-        action: () => console.log("Install Extension"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "Share Agent",
-        icon: Share,
-        action: () => console.log("Share Agent"),
         type: "command",
         actionType: "immediate",
       },
@@ -559,43 +478,6 @@ const getAppCommands = (
         actionType: "immediate",
       },
     ],
-    notes: [
-      {
-        name: "New Note",
-        icon: Plus,
-        action: () => console.log("New Note"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "New Notebook",
-        icon: BookOpen,
-        action: () => console.log("New Notebook"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "New Tag",
-        icon: Plus,
-        action: () => console.log("New Tag"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "Import Notes",
-        icon: Upload,
-        action: () => console.log("Import Notes"),
-        type: "command",
-        actionType: "immediate",
-      },
-      {
-        name: "Export Notes",
-        icon: Download,
-        action: () => console.log("Export Notes"),
-        type: "command",
-        actionType: "immediate",
-      },
-    ],
     mail: [
       {
         name: "Compose",
@@ -629,6 +511,66 @@ const getAppCommands = (
         name: "Empty Trash",
         icon: Trash2,
         action: () => console.log("Empty Trash"),
+        type: "command",
+        actionType: "immediate",
+      },
+    ],
+    notes: [
+      {
+        name: "New Note",
+        icon: Plus,
+        action: () => console.log("New Note"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "New Notebook",
+        icon: BookOpen,
+        action: () => console.log("New Notebook"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Import Notes",
+        icon: Upload,
+        action: () => console.log("Import Notes"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Export Notes",
+        icon: Download,
+        action: () => console.log("Export Notes"),
+        type: "command",
+        actionType: "immediate",
+      },
+    ],
+    connections: [
+      {
+        name: "Add Connection",
+        icon: Plus,
+        action: () => console.log("Add Connection"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Manage Connections",
+        icon: Settings,
+        action: () => console.log("Manage Connections"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Import Credentials",
+        icon: Upload,
+        action: () => console.log("Import Credentials"),
+        type: "command",
+        actionType: "immediate",
+      },
+      {
+        name: "Export Connections",
+        icon: Download,
+        action: () => console.log("Export Connections"),
         type: "command",
         actionType: "immediate",
       },
@@ -884,53 +826,9 @@ const getAppSections = (pathname: string): CommandItem[] => {
         action: () => console.log("Navigate to Reminders"),
       },
     ],
-    store: [
-      {
-        name: "All Servers",
-        icon: Package,
-        type: "command",
-        actionType: "immediate",
-        action: () => console.log("Navigate to All Servers"),
-      },
-      {
-        name: "Core Servers",
-        icon: Activity,
-        type: "command",
-        actionType: "immediate",
-        action: () => console.log("Navigate to Core"),
-      },
-      {
-        name: "Development",
-        icon: Terminal,
-        type: "command",
-        actionType: "immediate",
-        action: () => console.log("Navigate to Development"),
-      },
-      {
-        name: "Database",
-        icon: Database,
-        type: "command",
-        actionType: "immediate",
-        action: () => console.log("Navigate to Database"),
-      },
-      {
-        name: "Productivity",
-        icon: Zap,
-        type: "command",
-        actionType: "immediate",
-        action: () => console.log("Navigate to Productivity"),
-      },
-      {
-        name: "Cloud Services",
-        icon: Shield,
-        type: "command",
-        actionType: "immediate",
-        action: () => console.log("Navigate to Cloud"),
-      },
-    ],
     home: [],
-    editor: [],
     terminal: [],
+    connections: [],
     files: [],
     sheets: [],
     settings: [],
@@ -947,7 +845,6 @@ const useCommandDialog = () => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [showResults, setShowResults] = useState(false);
-  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [forceShowGreetingList, setForceShowGreetingList] = useState(false);
   const [showNoMatchIndicator, setShowNoMatchIndicator] = useState(false);
   const [chatMode, setChatMode] = useState(false);
@@ -1022,8 +919,6 @@ const useCommandDialog = () => {
     setSearch,
     showResults,
     setShowResults,
-    viewMode,
-    setViewMode,
     isSlashCommand,
     isBackslashCommand,
     isJustSlash,
@@ -1062,8 +957,6 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
     setSearch,
     showResults,
     setShowResults,
-    viewMode,
-    setViewMode,
     isSlashCommand,
     isBackslashCommand,
     isJustSlash,
@@ -1129,7 +1022,7 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
   
   // Get all sections from all apps for slash command
   const allAppSections = useMemo(() => {
-    const allPages: AppPage[] = ['mail', 'tasks', 'notes', 'agent', 'calendar', 'store', 'quant', 'bank'];
+    const allPages: AppPage[] = ['mail', 'tasks', 'notes', 'agent', 'calendar'];
     return allPages.flatMap(page => {
       const sections = getAppSections(`/${page}`);
       return sections.map(section => ({
@@ -1809,7 +1702,6 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
           ? currentDialogData.dialogConfig.width
           : "normal"
       }
-      style={{ zIndex: 9999 }}
     >
       <div
         className="relative [&_*]:!outline-none [&_*]:focus:!outline-none [&_*]:focus-visible:!outline-none [&_*]:!ring-0 [&_*]:!shadow-none [&_*]:!box-shadow-none [&_*]:focus:!ring-0 [&_*]:focus-visible:!ring-0 [&_*]:focus:!shadow-none [&_*]:focus-visible:!shadow-none [&_*]:focus:!border-transparent [&_*]:focus-visible:!border-transparent [&_*]:focus:!animate-none [&_*]:focus-visible:!animate-none"

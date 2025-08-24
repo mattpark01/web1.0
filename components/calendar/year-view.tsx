@@ -110,7 +110,7 @@ export function YearView({ date, events, onMonthSelect }: YearViewProps) {
           
           return (
             <Superellipse
-              key={monthIndex}
+              key={String(monthIndex)}
               cornerRadius={8}
               className={`
                 bg-muted/10 p-4 cursor-pointer transition-colors hover:bg-muted/30 flex flex-col h-full

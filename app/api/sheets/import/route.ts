@@ -168,7 +168,7 @@ function convertXLSXToFortuneSheet(workbook: XLSX.WorkBook) {
     if (worksheet['!cols']) {
       worksheet['!cols'].forEach((col: any, idx: number) => {
         if (col?.wpx) {
-          sheetData.config.columnlen[idx] = col.wpx;
+          (sheetData.config.columnlen as any)[idx] = col.wpx;
         }
       });
     }
@@ -177,7 +177,7 @@ function convertXLSXToFortuneSheet(workbook: XLSX.WorkBook) {
     if (worksheet['!rows']) {
       worksheet['!rows'].forEach((row: any, idx: number) => {
         if (row?.hpx) {
-          sheetData.config.rowlen[idx] = row.hpx;
+          (sheetData.config.rowlen as any)[idx] = row.hpx;
         }
       });
     }

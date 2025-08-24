@@ -23,7 +23,7 @@ export async function GET(
     
     // If we have original Excel file, return it
     if (sheet.excelFile) {
-      return new NextResponse(sheet.excelFile, {
+      return new NextResponse(Buffer.from(sheet.excelFile), {
         headers: {
           'Content-Type': sheet.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           'Content-Disposition': `attachment; filename="${sheet.name}.xlsx"`,

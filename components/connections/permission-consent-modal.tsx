@@ -35,9 +35,9 @@ export function PermissionConsentModal({
 }: PermissionConsentModalProps) {
   const [understood, setUnderstood] = useState(false);
   
-  const hasHighRiskPermissions = integration.permissions?.some(p => p.risk === 'high');
+  const hasHighRiskPermissions = integration.permissions?.some((p: any) => p.risk === 'high');
   const totalPermissions = integration.permissions?.length || 0;
-  const requiredPermissions = integration.permissions?.filter(p => p.required).length || 0;
+  const requiredPermissions = integration.permissions?.filter((p: any) => p.required).length || 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

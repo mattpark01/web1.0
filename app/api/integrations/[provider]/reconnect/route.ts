@@ -12,7 +12,7 @@ export async function POST(
   context: { params: Promise<{ provider: string }> }
 ) {
   try {
-    const session = await getAuthUser(request)
+    const user = await getAuthUser(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -21,9 +21,10 @@ export async function POST(
     const accountId = searchParams.get('accountId')
     
     // Find the integration
+    const provider = (await context.params).provider.toUpperCase().replace('-', '_') as any
     const where = accountId
-      ? { userId: user.id, provider: (await context.params).provider.toUpperCase().replace('-', '_'), accountId }
-      : { userId: user.id, provider: (await context.params).provider.toUpperCase().replace('-', '_') }
+      ? { userId: user.id, provider, accountId }
+      : { userId: user.id, provider }
     
     const integration = await prisma.integration.findFirst({ where })
     

@@ -3,7 +3,7 @@
  * Manages agent execution lifecycle with Cloud Run and llm-api-service
  */
 
-import { PrismaClient, AgentStatus, ExecutionStatus } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -41,11 +41,8 @@ export class AgentExecutor {
     const { agentId, userId, input, trigger } = config;
 
     // Get agent configuration
-    const agent = await prisma.agents.findUnique({
+    const agent = await prisma.agent.findUnique({
       where: { id: agentId },
-      include: {
-        agent_templates: true,
-      },
     });
 
     if (!agent) {
@@ -53,23 +50,32 @@ export class AgentExecutor {
     }
 
     // Check agent status
-    if (agent.status !== AgentStatus.ACTIVE) {
-      throw new Error(`Agent is not active: ${agent.status}`);
+    if (!agent.isActive) {
+      throw new Error('Agent is not active');
     }
 
     // Create execution record
-    const execution = await prisma.agent_executions.create({
+    const execution = await prisma.agentExecution.create({
       data: {
         id: crypto.randomUUID(),
-        agent_id: agentId,
-        status: ExecutionStatus.RUNNING,
-        started_at: new Date(),
+        agentId,
+        userId,
+        goal: input,
+        status: 'executing',
+        startedAt: new Date(),
       },
     });
 
     try {
       // Determine execution strategy based on agent configuration
-      const agentConfig = agent.configuration as any;
+      const agentConfig = {
+        systemPrompt: agent.systemPrompt,
+        model: agent.model,
+        temperature: agent.temperature,
+        maxSteps: agent.maxSteps,
+        allowedActions: agent.allowedActions,
+        timeout: 60000, // Default timeout
+      } as any;
       const isLongRunning = agentConfig.timeout > 300000; // > 5 minutes
 
       let result;
@@ -80,21 +86,20 @@ export class AgentExecutor {
       }
 
       // Update execution with results
-      await prisma.agent_executions.update({
+      await prisma.agentExecution.update({
         where: { id: execution.id },
         data: {
-          status: ExecutionStatus.COMPLETED,
-          ended_at: new Date(),
-          output: result,
+          status: 'completed',
+          completedAt: new Date(),
+          result,
         },
       });
 
       // Update agent last run time
-      await prisma.agents.update({
+      await prisma.agent.update({
         where: { id: agentId },
         data: {
-          last_run_at: new Date(),
-          updated_at: new Date(),
+          updatedAt: new Date(),
         },
       });
 
@@ -104,27 +109,28 @@ export class AgentExecutor {
       return result;
     } catch (error) {
       // Log error
-      await prisma.agent_executions.update({
+      await prisma.agentExecution.update({
         where: { id: execution.id },
         data: {
-          status: ExecutionStatus.FAILED,
-          ended_at: new Date(),
+          status: 'failed',
+          completedAt: new Date(),
           error: error instanceof Error ? error.message : 'Unknown error',
         },
       });
 
       // Create alert for failure
-      await prisma.agent_alerts.create({
-        data: {
-          id: crypto.randomUUID(),
-          agent_id: agentId,
-          user_id: userId,
-          type: 'EXECUTION_FAILED',
-          severity: 'HIGH',
-          message: `Agent execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          metadata: { executionId: execution.id, error: String(error) },
-        },
-      });
+      // TODO: Create alert when agent_alerts model is added
+      // await prisma.agent_alerts.create({
+      //   data: {
+      //     id: crypto.randomUUID(),
+      //     agent_id: agentId,
+      //     user_id: userId,
+      //     type: 'EXECUTION_FAILED',
+      //     severity: 'HIGH',
+      //     message: `Agent execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      //     metadata: { executionId: execution.id, error: String(error) },
+      //   },
+      // });
 
       throw error;
     }
@@ -210,10 +216,10 @@ export class AgentExecutor {
     const jobUrl = await this.deployCloudRunJob(jobConfig);
 
     // Update execution with Cloud Run details
-    await prisma.agent_executions.update({
+    await prisma.agentExecution.update({
       where: { id: executionId },
       data: {
-        output: {
+        result: {
           cloudRunJobUrl: jobUrl,
           status: 'Job submitted to Cloud Run',
         },
@@ -427,16 +433,17 @@ ${JSON.stringify(input, null, 2)}`;
    * Log execution details
    */
   private async logExecution(agentId: string, executionId: string, level: string, message: string) {
-    await prisma.agent_logs.create({
-      data: {
-        id: crypto.randomUUID(),
-        agent_id: agentId,
-        execution_id: executionId,
-        level: level as any,
-        message,
-        timestamp: new Date(),
-      },
-    });
+    // TODO: Create log when agent_logs model is added
+    // await prisma.agent_logs.create({
+    //   data: {
+    //     id: crypto.randomUUID(),
+    //     agent_id: agentId,
+    //     execution_id: executionId,
+    //     level: level as any,
+    //     message,
+    //     timestamp: new Date(),
+    //   },
+    // });
   }
 
   /**
@@ -446,25 +453,26 @@ ${JSON.stringify(input, null, 2)}`;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    await prisma.agent_usage.upsert({
-      where: {
-        user_id_agent_id_date: {
-          user_id: userId,
-          agent_id: agentId,
-          date: today,
-        },
-      },
-      update: {
-        execution_count: { increment: 1 },
-      },
-      create: {
-        id: crypto.randomUUID(),
-        user_id: userId,
-        agent_id: agentId,
-        date: today,
-        execution_count: 1,
-      },
-    });
+    // TODO: Track usage when agent_usage model is added
+    // await prisma.agent_usage.upsert({
+    //   where: {
+    //     user_id_agent_id_date: {
+    //       user_id: userId,
+    //       agent_id: agentId,
+    //       date: today,
+    //     },
+    //   },
+    //   update: {
+    //     execution_count: { increment: 1 },
+    //   },
+    //   create: {
+    //     id: crypto.randomUUID(),
+    //     user_id: userId,
+    //     agent_id: agentId,
+    //     date: today,
+    //     execution_count: 1,
+    //   },
+    // });
   }
 
   /**

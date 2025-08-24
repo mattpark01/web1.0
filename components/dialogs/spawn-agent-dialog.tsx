@@ -61,7 +61,6 @@ export function SpawnAgentDialog({
         WebkitAppearance: "none",
         MozAppearance: "none",
         WebkitTapHighlightColor: "transparent",
-        WebkitFocusRingColor: "transparent",
       }}
     >
       {/* Header */}
@@ -104,8 +103,7 @@ export function SpawnAgentDialog({
               WebkitAppearance: "none",
               MozAppearance: "none",
               WebkitTapHighlightColor: "transparent",
-              WebkitFocusRingColor: "transparent",
-              WebkitUserSelect: "text",
+                    WebkitUserSelect: "text",
             }}
           />
         </div>
@@ -138,11 +136,8 @@ export function SpawnAgentDialog({
               WebkitAppearance: "none",
               MozAppearance: "none",
               WebkitTapHighlightColor: "transparent",
-              WebkitFocusRingColor: "transparent",
-              WebkitUserSelect: "text",
-              resize: "none !important",
-              MozResize: "none",
-              WebkitResize: "none",
+                    WebkitUserSelect: "text",
+              resize: "none",
               whiteSpace: "pre-wrap",
               wordWrap: "break-word",
             }}

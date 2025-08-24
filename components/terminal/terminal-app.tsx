@@ -1,10 +1,6 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Terminal as XTerm } from "xterm"
-import { FitAddon } from "xterm-addon-fit"
-import { WebLinksAddon } from "xterm-addon-web-links"
-import { io, Socket } from "socket.io-client"
 import { 
   Terminal, 
   Plus, 
@@ -16,7 +12,15 @@ import {
   Settings,
   Menu
 } from "lucide-react"
-import "xterm/css/xterm.css"
+
+// Import xterm CSS only on client side
+import 'xterm/css/xterm.css'
+
+// Types for xterm (will be loaded dynamically)
+type XTerm = any
+type FitAddon = any
+type WebLinksAddon = any
+type Socket = any
 
 interface TerminalSession {
   id: string
@@ -129,8 +133,21 @@ export function TerminalApp() {
         const container = terminalRefs.current[session.id]
         if (!container) return
 
-        // Create terminal instance
-        const terminal = new XTerm({
+        // Create terminal instance with dynamic import
+        initializeTerminal(session, container)
+      }
+    })
+  }, [sessions])
+
+  const initializeTerminal = async (session: TerminalSession, container: HTMLElement) => {
+    try {
+      // Dynamically import xterm to prevent SSR issues
+      const { Terminal: XTerminal } = await import('xterm')
+      const { FitAddon } = await import('xterm-addon-fit')
+      const { WebLinksAddon } = await import('xterm-addon-web-links')
+
+      // Create terminal instance
+      const terminal = new XTerminal({
           cursorBlink: true,
           fontSize: 14,
           fontFamily: "'JetBrains Mono', 'Fira Code', 'Courier New', monospace",
@@ -210,9 +227,10 @@ export function TerminalApp() {
         return () => {
           window.removeEventListener('resize', handleResize)
         }
+      } catch (error) {
+        console.error('Failed to initialize terminal:', error)
       }
-    })
-  }, [sessions])
+    }
 
   const createNewSession = () => {
     const sessionId = Date.now().toString()
@@ -291,7 +309,11 @@ export function TerminalApp() {
         <div className="flex-1 relative bg-zinc-950">
           {sessions.length > 0 && (
             <div
-              ref={el => terminalRefs.current[sessions[0].id] = el}
+              ref={el => {
+                if (el) {
+                  terminalRefs.current[sessions[0].id] = el;
+                }
+              }}
               className="absolute inset-0"
               style={{ padding: '8px' }}
             />

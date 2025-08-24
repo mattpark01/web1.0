@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 /**
  * GET /api/users/[id]/context - Get user context for agent-runtime
@@ -7,7 +7,7 @@ import { prisma } from '@/lib/prisma'
  */
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  ctx: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verify API key for agent-runtime
@@ -20,7 +20,8 @@ export async function GET(
       )
     }
     
-    const userId = (await context.params).id
+    const params = await ctx.params
+    const userId = params.id
     
     // Get user with their integrations and key data
     const user = await prisma.user.findUnique({
@@ -57,14 +58,14 @@ export async function GET(
           orderBy: { createdAt: 'desc' },
           take: 5,
           select: {
-            action: true,
+            id: true,
             entityType: true,
+            entityId: true,
             createdAt: true,
           }
         },
         // Financial accounts
         bankAccounts: {
-          where: { isActive: true },
           select: {
             id: true,
             name: true,
@@ -74,10 +75,9 @@ export async function GET(
         },
         // Brokerage connections
         brokerageConnections: {
-          where: { isActive: true },
           select: {
+            id: true,
             provider: true,
-            accountType: true,
           }
         }
       }
@@ -91,22 +91,23 @@ export async function GET(
     }
     
     // Build context object
+    const userWithRelations = user as any
     const context = {
       user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        memberSince: user.createdAt,
+        id: userWithRelations.id,
+        email: userWithRelations.email,
+        name: userWithRelations.name,
+        memberSince: userWithRelations.createdAt,
       },
       resources: {
-        tasks: user._count.tasks,
-        notes: user._count.notes,
-        emails: user._count.emails,
-        events: user._count.calendarEvents,
-        bankAccounts: user._count.bankAccounts,
-        integrations: user._count.integrations,
+        tasks: userWithRelations._count?.tasks || 0,
+        notes: userWithRelations._count?.notes || 0,
+        emails: userWithRelations._count?.emails || 0,
+        events: userWithRelations._count?.calendarEvents || 0,
+        bankAccounts: userWithRelations._count?.bankAccounts || 0,
+        integrations: userWithRelations._count?.integrations || 0,
       },
-      integrations: user.integrations.map(i => ({
+      integrations: (userWithRelations.integrations || []).map((i: any) => ({
         provider: i.provider,
         accountEmail: i.accountEmail,
         scopes: i.scopes,
@@ -114,20 +115,21 @@ export async function GET(
         syncEnabled: i.syncEnabled,
       })),
       financialAccounts: {
-        bank: user.bankAccounts.map(a => ({
+        bank: (userWithRelations.bankAccounts || []).map((a: any) => ({
           id: a.id,
           name: a.name,
           type: a.type,
           lastFour: a.mask,
         })),
-        brokerage: user.brokerageConnections.map(b => ({
+        brokerage: (userWithRelations.brokerageConnections || []).map((b: any) => ({
+          id: b.id,
           provider: b.provider,
-          type: b.accountType,
         })),
       },
-      recentActivity: user.activities.map(a => ({
-        action: a.action,
+      recentActivity: (userWithRelations.activities || []).map((a: any) => ({
+        id: a.id,
         type: a.entityType,
+        entityId: a.entityId,
         timestamp: a.createdAt,
       })),
       preferences: {

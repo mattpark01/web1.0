@@ -171,15 +171,10 @@ export function MailDetail({ mail, onStarToggle, onDelete, onArchive }: MailDeta
             <div className="flex items-start justify-between gap-4">
               <h1 className="text-2xl font-bold tracking-tight flex-1">{mail.subject}</h1>
               <div className="flex items-center gap-2">
-                {mail.category && (
-                  <Badge variant={mail.category === 'work' ? 'default' : 'secondary'} className="text-xs">
+                {mail.hasAttachments && (
+                  <Badge variant="secondary" className="text-xs">
                     <Tag className="h-3 w-3 mr-1" />
-                    {mail.category}
-                  </Badge>
-                )}
-                {mail.isImportant && (
-                  <Badge variant="destructive" className="text-xs">
-                    Important
+                    {mail.attachmentCount || 1} attachment{(mail.attachmentCount || 1) !== 1 ? 's' : ''}
                   </Badge>
                 )}
               </div>

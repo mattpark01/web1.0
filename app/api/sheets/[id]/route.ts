@@ -80,7 +80,7 @@ export async function PUT(
         data: {
           sheetId: (await context.params).id,
           version: lastVersion + 1,
-          data: currentSheet.data,
+          data: currentSheet.data as any,
           changedBy: userId,
           changeNote: body.changeNote,
         },

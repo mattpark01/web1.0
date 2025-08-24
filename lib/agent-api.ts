@@ -85,7 +85,7 @@ export class AgentAPI {
         let buffer = '';
 
         function pump(): Promise<void> {
-          return reader.read().then(({ done, value }) => {
+          return reader!.read().then(({ done, value }) => {
             if (done) {
               controller.close();
               return;
