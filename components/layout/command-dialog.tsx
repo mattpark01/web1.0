@@ -58,7 +58,7 @@ import {
   ArrowUp,
   Activity,
 } from "lucide-react";
-import { SpawnAgentDialog } from "@/components/dialogs/spawn-agent-dialog";
+import { SpawnAgentDialogHierarchical } from "@/components/dialogs/spawn-agent-dialog-hierarchical";
 import { useCommandRegistry } from "@/contexts/command-registry";
 import { CommandChat } from "@/components/chat/command-chat";
 
@@ -267,7 +267,7 @@ const getAppCommands = (
         actionType: "dialog",
         dialogConfig: {
           title: "Spawn Agent",
-          component: SpawnAgentDialog,
+          component: SpawnAgentDialogHierarchical,
           width: "normal",
         },
       },
@@ -849,6 +849,7 @@ const useCommandDialog = () => {
   const [showNoMatchIndicator, setShowNoMatchIndicator] = useState(false);
   const [chatMode, setChatMode] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
+  const [chatHistory, setChatHistory] = useState<any[]>([]);
 
   // Multi-level dialog state
   const [dialogLevel, setDialogLevel] = useState(0);
@@ -891,10 +892,17 @@ const useCommandDialog = () => {
       const previousState = dialogHistory[dialogHistory.length - 1];
       if (previousState) {
         setDialogLevel(previousState.level);
-        setSearch(previousState.search);
+        setSearch(previousState.search || "");
         setShowResults(previousState.showResults);
+        setChatMode(previousState.chatMode || false);
+        setChatMessage("");
         setDialogHistory((prev) => prev.slice(0, -1));
         setCurrentDialogData(null);
+        
+        // Clear chat history when going back from chat
+        if (chatMode && !previousState.chatMode) {
+          setChatHistory([]);
+        }
       }
     }
   };
@@ -931,8 +939,12 @@ const useCommandDialog = () => {
     setChatMode,
     chatMessage,
     setChatMessage,
+    chatHistory,
+    setChatHistory,
     dialogLevel,
+    setDialogLevel,
     dialogHistory,
+    setDialogHistory,
     currentDialogData,
     navigateToDialog,
     navigateBack,
@@ -969,7 +981,12 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
     setChatMode,
     chatMessage,
     setChatMessage,
+    chatHistory,
+    setChatHistory,
     dialogLevel,
+    setDialogLevel,
+    dialogHistory,
+    setDialogHistory,
     currentDialogData,
     navigateToDialog,
     navigateBack,
@@ -1401,16 +1418,21 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
 
   // Render dialog content based on level
   const renderDialogContent = () => {
-    if (dialogLevel === 1 && currentDialogData) {
-      const DialogComponent = currentDialogData.dialogConfig.component;
-      return <DialogComponent onBack={navigateBack} onComplete={closeDialog} />;
-    }
-
-    if (chatMode && chatMessage) {
-      return <CommandChat userMessage={chatMessage} onClose={() => {
-        setChatMode(false);
-        setChatMessage("");
-      }} />;
+    if (dialogLevel === 1) {
+      // Check if we're in chat mode at level 1
+      if (chatMode && chatMessage) {
+        return <CommandChat 
+          initialMessage={chatHistory.length === 0 ? chatMessage : undefined}
+          messages={chatHistory}
+          onMessagesChange={setChatHistory}
+          onClose={navigateBack}  // Use navigateBack instead of custom close
+        />;
+      }
+      // Otherwise, render regular dialog component
+      if (currentDialogData) {
+        const DialogComponent = currentDialogData.dialogConfig.component;
+        return <DialogComponent onBack={navigateBack} onComplete={closeDialog} />;
+      }
     }
 
     return renderCommandList();
@@ -1718,21 +1740,19 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
           style={{ outline: "none !important" }}
         >
           {dialogLevel === 0 ? (
-            chatMode && chatMessage ? (
-              <div className="h-96">
-                {renderDialogContent()}
-              </div>
-            ) : shouldShowResults ? (
+            shouldShowResults ? (
               <CommandList className="px-1 pt-2 pb-0">
                 {renderCommandList()}
               </CommandList>
             ) : null
           ) : (
-            <div>{renderDialogContent()}</div>
+            <div className={chatMode ? "h-96" : ""}>
+              {renderDialogContent()}
+            </div>
           )}
         </motion.div>
 
-        {dialogLevel === 0 && !(chatMode && chatMessage) && (
+        {dialogLevel === 0 && (
           <div className="relative">
             <CommandInput
               placeholder={getPlaceholder()}
@@ -1867,10 +1887,18 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
                   getDisplayValue().length > 0 &&
                   !showResults
                 ) {
-                  // No matches found, enter chat mode
+                  // No matches found, enter chat mode as a new dialog level
                   e.preventDefault();
+                  
+                  // Save current state to dialog history
+                  setDialogHistory((prev) => [
+                    ...prev,
+                    { level: dialogLevel, search, showResults, chatMode: false },
+                  ]);
+                  
                   setChatMessage(getDisplayValue());
                   setChatMode(true);
+                  setDialogLevel(1); // Move to next level
                   setSearch(""); // Clear the input
                   setShowResults(false); // Prevent showing results
                   setShowNoMatchIndicator(false); // Hide the send button

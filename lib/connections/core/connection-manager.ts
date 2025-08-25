@@ -306,21 +306,16 @@ export class ConnectionManager {
       encryptedData.apiSecret = encryption.encrypt(credentials.apiSecret)
     }
     
-    // Map provider ID to enum (you'll need to maintain this mapping)
-    const providerEnumMap: Record<string, string> = {
-      'google-calendar': 'GOOGLE_CALENDAR',
-      'gmail': 'GOOGLE_GMAIL',
-      'github': 'GITHUB',
-      'linear': 'LINEAR',
-      'plaid': 'PLAID',
-      'slack': 'SLACK',
-      'notion': 'NOTION',
+    // Get provider from catalog instead of hardcoded enum
+    const catalogEntry = await prisma.integrationCatalog.findUnique({
+      where: { provider: providerId }
+    })
+    
+    if (!catalogEntry) {
+      throw new Error(`Provider ${providerId} not found in catalog`)
     }
     
-    const providerEnum = providerEnumMap[providerId]
-    if (!providerEnum) {
-      throw new Error(`Provider ${providerId} not mapped to enum`)
-    }
+    const providerEnum = this.mapProviderToEnum(catalogEntry.provider)
     
     // Store in database
     const connection = await prisma.integration.upsert({
@@ -388,20 +383,16 @@ export class ConnectionManager {
     userId: string,
     providerId: string
   ): Promise<ConnectionCredentials | null> {
-    const providerEnumMap: Record<string, string> = {
-      'google-calendar': 'GOOGLE_CALENDAR',
-      'gmail': 'GOOGLE_GMAIL',
-      'github': 'GITHUB',
-      'linear': 'LINEAR',
-      'plaid': 'PLAID',
-      'slack': 'SLACK',
-      'notion': 'NOTION',
-    }
+    // Get provider from catalog
+    const catalogEntry = await prisma.integrationCatalog.findUnique({
+      where: { provider: providerId }
+    })
     
-    const providerEnum = providerEnumMap[providerId]
-    if (!providerEnum) {
+    if (!catalogEntry) {
       return null
     }
+    
+    const providerEnum = this.mapProviderToEnum(catalogEntry.provider)
     
     const connection = await prisma.integration.findFirst({
       where: {
@@ -524,6 +515,31 @@ export class ConnectionManager {
     // Use same domain for both web and CLI
     // CLI can open browser to web callback URL
     return `${baseUrl}/api/connections/oauth/callback`
+  }
+
+  /**
+   * Map provider string to enum for legacy Integration table
+   * TODO: Remove this when Integration table is migrated to use string providers
+   */
+  private mapProviderToEnum(providerId: string): string {
+    const mapping: Record<string, string> = {
+      'google_calendar': 'GOOGLE_CALENDAR',
+      'google-calendar': 'GOOGLE_CALENDAR',
+      'gmail': 'GOOGLE_GMAIL',
+      'github': 'GITHUB',
+      'linear': 'LINEAR',
+      'plaid': 'PLAID',
+      'slack': 'SLACK',
+      'notion': 'NOTION',
+      'calendly': 'GOOGLE_CALENDAR', // Map to closest equivalent for now
+      'coinbase': 'ROBINHOOD', // Map to closest equivalent for now
+      'jira': 'JIRA',
+      'robinhood': 'ROBINHOOD',
+      'sendgrid': 'GOOGLE_GMAIL', // Map to closest equivalent for now
+      'stripe': 'PLAID', // Map to closest equivalent for now
+    }
+    
+    return mapping[providerId] || 'GOOGLE_CALENDAR' // Default fallback
   }
   
   /**

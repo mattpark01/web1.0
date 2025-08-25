@@ -1,4 +1,43 @@
 // Agent Runtime API Client
+export interface CreateAgentRequest {
+  agentId: string;
+  name: string;
+  description?: string;
+  systemPrompt: string;
+  model?: string;
+  temperature?: number;
+  maxSteps?: number;
+  allowedActions?: string[];
+  requiresAuth?: boolean;
+}
+
+export interface Agent {
+  id: string;
+  agentId: string;
+  name: string;
+  description?: string;
+  icon?: string;
+  systemPrompt: string;
+  model: string;
+  temperature: number;
+  maxSteps: number;
+  allowedActions: string[];
+  requiresAuth: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PreconfiguredAgent {
+  agentId: string;
+  name: string;
+  tagline: string;
+  description: string;
+  icon: string;
+  hasAllTools: boolean;
+  toolCount: number;
+}
+
 export interface AgentRequest {
   agentId: string;
   goal: string;
@@ -28,29 +67,107 @@ export interface AgentStreamUpdate {
   timestamp: string;
 }
 
-const AGENT_RUNTIME_BASE_URL = process.env.NEXT_PUBLIC_AGENT_RUNTIME_URL || 'http://localhost:8080';
+// Automatically use local server in development, Cloud Run in production
+const getAgentRuntimeUrl = () => {
+  // If explicitly set, use that
+  if (process.env.NEXT_PUBLIC_AGENT_RUNTIME_URL) {
+    return process.env.NEXT_PUBLIC_AGENT_RUNTIME_URL;
+  }
+  
+  // Otherwise, detect based on environment
+  const isDevelopment = process.env.NODE_ENV === 'development' || 
+                        (typeof window !== 'undefined' && window.location.hostname === 'localhost');
+  
+  return isDevelopment 
+    ? 'http://localhost:8080'
+    : 'https://agent-runtime-565753126849.us-east1.run.app';
+};
+
+const AGENT_RUNTIME_BASE_URL = getAgentRuntimeUrl();
 
 export class AgentAPI {
   private baseUrl: string;
+  private apiKey?: string;
 
   constructor(baseUrl: string = AGENT_RUNTIME_BASE_URL) {
     this.baseUrl = baseUrl;
+    // Get API key from localStorage
+    if (typeof window !== 'undefined') {
+      // In development, auto-set the API key from env if not already set
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      const devApiKey = process.env.NEXT_PUBLIC_DEV_SPATIO_API_KEY;
+      
+      if (isDevelopment && devApiKey && !localStorage.getItem('spatio_api_key')) {
+        localStorage.setItem('spatio_api_key', devApiKey);
+        console.log('Auto-set development API key from environment');
+      }
+      
+      this.apiKey = localStorage.getItem('spatio_api_key') || undefined;
+    }
   }
 
-  async getAgents(): Promise<any[]> {
-    const response = await fetch(`${this.baseUrl}/api/agents`);
+  setApiKey(apiKey: string) {
+    this.apiKey = apiKey;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('spatio_api_key', apiKey);
+    }
+  }
+
+  clearApiKey() {
+    this.apiKey = undefined;
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('spatio_api_key');
+    }
+  }
+
+  private getHeaders(): HeadersInit {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    if (this.apiKey) {
+      headers['Authorization'] = `Bearer ${this.apiKey}`;
+    }
+    return headers;
+  }
+
+  async getAgents(): Promise<Agent[]> {
+    const response = await fetch(`${this.baseUrl}/api/agents`, {
+      headers: this.getHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`Failed to get agents: ${response.statusText}`);
     }
     return response.json();
   }
 
+  async getPreconfiguredAgents(): Promise<PreconfiguredAgent[]> {
+    const response = await fetch(`${this.baseUrl}/api/agents/preconfigured`, {
+      headers: this.getHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to get preconfigured agents: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  async createAgent(request: CreateAgentRequest): Promise<Agent> {
+    const response = await fetch(`${this.baseUrl}/api/agents`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to create agent: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
   async executeAgent(request: AgentRequest): Promise<AgentResponse> {
     const response = await fetch(`${this.baseUrl}/api/agents/${request.agentId}/execute`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: this.getHeaders(),
       body: JSON.stringify(request),
     });
 
@@ -64,9 +181,7 @@ export class AgentAPI {
   async streamAgentExecution(request: AgentRequest): Promise<ReadableStream<AgentStreamUpdate>> {
     const response = await fetch(`${this.baseUrl}/api/agents/${request.agentId}/execute`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: this.getHeaders(),
       body: JSON.stringify({ ...request, stream: true }),
     });
 
@@ -122,7 +237,9 @@ export class AgentAPI {
   }
 
   async getExecution(executionId: string): Promise<any> {
-    const response = await fetch(`${this.baseUrl}/api/executions/${executionId}`);
+    const response = await fetch(`${this.baseUrl}/api/executions/${executionId}`, {
+      headers: this.getHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`Failed to get execution: ${response.statusText}`);
     }
@@ -132,6 +249,7 @@ export class AgentAPI {
   async cancelExecution(executionId: string): Promise<void> {
     const response = await fetch(`${this.baseUrl}/api/executions/${executionId}/cancel`, {
       method: 'POST',
+      headers: this.getHeaders(),
     });
     if (!response.ok) {
       throw new Error(`Failed to cancel execution: ${response.statusText}`);
@@ -145,4 +263,4 @@ export const agentAPI = new AgentAPI();
 // Hook for React components
 export function useAgentAPI() {
   return agentAPI;
-}
+} 

@@ -13,6 +13,9 @@ export class ProviderRegistry {
   private constructor() {
     // Load built-in providers
     this.loadBuiltInProviders()
+    
+    // Load providers from catalog (async, so it happens after)
+    this.loadFromCatalog().catch(console.error)
   }
   
   static getInstance(): ProviderRegistry {
@@ -77,6 +80,53 @@ export class ProviderRegistry {
     return Array.from(this.categories)
   }
   
+  /**
+   * Load providers from database catalog
+   */
+  private async loadFromCatalog(): Promise<void> {
+    try {
+      // Dynamic import to avoid circular dependency
+      const { prisma } = await import('@/lib/prisma')
+      
+      const catalogEntries = await prisma.integrationCatalog.findMany({
+        where: { status: 'available' }
+      })
+      
+      for (const entry of catalogEntries) {
+        // Skip if we already have this provider from built-ins
+        if (this.providers.has(entry.provider)) {
+          continue
+        }
+        
+        // Convert catalog entry to ConnectionProvider
+        const provider: ConnectionProvider = {
+          id: entry.provider,
+          name: entry.name,
+          category: entry.category || 'other',
+          authType: (entry.authType as any) || 'oauth2',
+          logoUrl: entry.iconUrl || undefined,
+          documentation: entry.documentationUrl || undefined
+        }
+        
+        // Add OAuth config if available
+        if (entry.oauth_config && entry.authType === 'oauth2') {
+          provider.oauth2 = entry.oauth_config as any
+        }
+        
+        // Add required scopes
+        if (entry.requiredScopes?.length) {
+          if (provider.oauth2) {
+            provider.oauth2.scopes = entry.requiredScopes
+          }
+        }
+        
+        this.register(provider)
+      }
+    } catch (error) {
+      console.warn('Failed to load providers from catalog:', error)
+    }
+  }
+
   /**
    * Load built-in providers
    */

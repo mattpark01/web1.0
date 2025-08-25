@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, User, Loader2, ArrowUp } from 'lucide-react';
-import { useAgentAPI, AgentStreamUpdate } from '@/lib/agent-api';
+import { User, Loader2, ArrowUp } from 'lucide-react';
 
 export interface ChatMessage {
   id: string;
@@ -14,41 +13,70 @@ export interface ChatMessage {
 }
 
 interface CommandChatProps {
-  userMessage: string;
+  initialMessage?: string;
+  messages: ChatMessage[];
+  onMessagesChange: (messages: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => void;
   onClose: () => void;
 }
 
-export function CommandChat({ userMessage, onClose }: CommandChatProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [streamingMessage, setStreamingMessage] = useState('');
+export function CommandChat({ initialMessage, messages, onMessagesChange, onClose }: CommandChatProps) {
+  const [isLoading, setIsLoading] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const agentAPI = useAgentAPI();
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
-    // Add user message immediately
-    const userMsg: ChatMessage = {
-      id: Date.now().toString(),
-      type: 'user',
-      content: userMessage,
-      timestamp: new Date(),
-    };
-    
-    setMessages([userMsg]);
-    
-    // Start streaming agent response
-    startAgentResponse(userMessage);
-  }, [userMessage]);
+    // Only process initial message once when component mounts
+    if (initialMessage && !hasInitialized.current) {
+      hasInitialized.current = true;
+      const userMsg: ChatMessage = {
+        id: Date.now().toString(),
+        type: 'user',
+        content: initialMessage,
+        timestamp: new Date(),
+      };
+      
+      onMessagesChange(prev => [...prev, userMsg]);
+      
+      // Start streaming agent response
+      startAgentResponse(initialMessage);
+    }
+  }, [initialMessage]);
 
   useEffect(() => {
     // Auto-scroll to bottom when new messages arrive
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, streamingMessage]);
+  }, [messages]);
+
+  useEffect(() => {
+    // Global escape key handler
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleGlobalKeyDown);
+    return () => document.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [onClose]);
+
+  useEffect(() => {
+    // Auto-focus the input when component mounts with a small delay to ensure rendering is complete
+    const timer = setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+        // Also select any existing text for easy replacement
+        inputRef.current.select();
+      }
+    }, 50);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   const startAgentResponse = async (message: string) => {
     try {
@@ -65,29 +93,50 @@ export function CommandChat({ userMessage, onClose }: CommandChatProps) {
         isStreaming: true,
       };
       
-      setMessages(prev => [...prev, assistantMsg]);
+      onMessagesChange(prev => [...prev, assistantMsg]);
       setIsLoading(false);
       
-      // Try to get a default agent or use a fallback
-      let agentId = 'general-assistant'; // Default agent
+      // Use the /api/chat endpoint directly like the TUI does
+      // Automatically detect dev vs prod environment
+      const isDevelopment = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
+      const baseUrl = process.env.NEXT_PUBLIC_AGENT_RUNTIME_URL || 
+                     (isDevelopment ? 'http://localhost:8080' : 'https://agent-runtime-565753126849.us-east1.run.app');
       
-      try {
-        const agents = await agentAPI.getAgents();
-        if (agents.length > 0) {
-          agentId = agents[0].agentId || agents[0].id;
-        }
-      } catch (agentError) {
-        console.warn('Could not fetch agents, using default:', agentError);
+      // Auto-set development API key if needed
+      if (isDevelopment && process.env.NEXT_PUBLIC_DEV_SPATIO_API_KEY && !localStorage.getItem('spatio_api_key')) {
+        localStorage.setItem('spatio_api_key', process.env.NEXT_PUBLIC_DEV_SPATIO_API_KEY);
+        console.log('Auto-set development API key from environment');
       }
       
-      // Start streaming response
-      const stream = await agentAPI.streamAgentExecution({
-        agentId,
-        goal: message,
-        stream: true,
+      const apiKey = typeof window !== 'undefined' ? localStorage.getItem('spatio_api_key') : null;
+      
+      console.log('Sending chat request to:', `${baseUrl}/api/chat`);
+      console.log('Using API key:', apiKey ? `${apiKey.substring(0, 20)}...` : 'none');
+      
+      const response = await fetch(`${baseUrl}/api/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(apiKey && { 'Authorization': `Bearer ${apiKey}` })
+        },
+        body: JSON.stringify({
+          message: message,
+          model: 'claude-3-5-sonnet-20241022',
+          stream: true
+        })
       });
       
-      const reader = stream.getReader();
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body');
+      }
+      
+      const decoder = new TextDecoder();
+      let buffer = '';
       let currentContent = '';
       
       try {
@@ -96,31 +145,37 @@ export function CommandChat({ userMessage, onClose }: CommandChatProps) {
           
           if (done) break;
           
-          const update: AgentStreamUpdate = value;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
           
-          // Handle different types of updates
-          switch (update.type) {
-            case 'response':
-            case 'step_complete':
-            case 'completed':
-              if (update.message) {
-                currentContent = update.message;
-                setMessages(prev => prev.map(msg => 
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') {
+                onMessagesChange(prev => prev.map(msg => 
                   msg.id === assistantId 
-                    ? { ...msg, content: currentContent }
+                    ? { ...msg, isStreaming: false }
                     : msg
                 ));
+                return;
               }
-              break;
               
-            case 'error':
-              currentContent = `Error: ${update.message}`;
-              setMessages(prev => prev.map(msg => 
-                msg.id === assistantId 
-                  ? { ...msg, content: currentContent, isStreaming: false }
-                  : msg
-              ));
-              return;
+              try {
+                const chunk = JSON.parse(data);
+                if (chunk.choices && chunk.choices[0]?.delta?.content) {
+                  const content = chunk.choices[0].delta.content;
+                  currentContent += content;
+                  onMessagesChange(prev => prev.map(msg => 
+                    msg.id === assistantId 
+                      ? { ...msg, content: currentContent }
+                      : msg
+                  ));
+                }
+              } catch (e) {
+                console.error('Failed to parse chunk:', e);
+              }
+            }
           }
         }
       } finally {
@@ -128,7 +183,7 @@ export function CommandChat({ userMessage, onClose }: CommandChatProps) {
       }
       
       // Mark streaming as complete
-      setMessages(prev => prev.map(msg => 
+      onMessagesChange(prev => prev.map(msg => 
         msg.id === assistantId 
           ? { ...msg, isStreaming: false }
           : msg
@@ -136,23 +191,32 @@ export function CommandChat({ userMessage, onClose }: CommandChatProps) {
       
     } catch (error) {
       console.error('Error getting agent response:', error);
+      setIsLoading(false);
       
-      // Fallback to mock response if agent-runtime is not available
-      const mockResponse = "I understand you're asking about: " + message + ". Let me help you with that. (Note: Agent runtime not available, showing mock response)";
-      
+      // Show error message instead of mock
       const assistantId = (Date.now() + 1).toString();
+      const isDevelopment = process.env.NODE_ENV === 'development' || (typeof window !== 'undefined' && window.location.hostname === 'localhost');
+      const errorUrl = process.env.NEXT_PUBLIC_AGENT_RUNTIME_URL || 
+                      (isDevelopment ? 'http://localhost:8080' : 'https://agent-runtime-565753126849.us-east1.run.app');
       
-      // Add mock response message
       const assistantMsg: ChatMessage = {
         id: assistantId,
         type: 'assistant',
-        content: mockResponse,
+        content: `Failed to connect to agent runtime. Please ensure the service is running on ${errorUrl}`,
         timestamp: new Date(),
         isStreaming: false,
       };
       
-      setMessages(prev => [...prev, assistantMsg]);
-      setIsLoading(false);
+      onMessagesChange(prev => {
+        const hasAssistant = prev.find(m => m.id === assistantId);
+        return hasAssistant
+          ? prev.map(msg => 
+              msg.id === assistantId 
+                ? { ...msg, content: assistantMsg.content, isStreaming: false }
+                : msg
+            )
+          : [...prev, assistantMsg];
+      });
     }
   };
 
@@ -170,11 +234,16 @@ export function CommandChat({ userMessage, onClose }: CommandChatProps) {
       timestamp: new Date(),
     };
     
-    setMessages(prev => [...prev, userMsg]);
+    onMessagesChange(prev => [...prev, userMsg]);
     
     // Get agent response
     await startAgentResponse(message);
     setIsSending(false);
+    
+    // Re-focus the input after sending
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
   };
 
   const handleSendMessage = () => {
@@ -185,6 +254,9 @@ export function CommandChat({ userMessage, onClose }: CommandChatProps) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      onClose();
     }
   };
 
@@ -207,17 +279,11 @@ export function CommandChat({ userMessage, onClose }: CommandChatProps) {
                 message.type === 'user' ? 'justify-end' : 'justify-start'
               }`}
             >
-              {message.type === 'assistant' && (
-                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Bot className="w-3 h-3 text-primary" />
-                </div>
-              )}
-              
               <div
-                className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
+                className={`max-w-[80%] text-sm ${
                   message.type === 'user'
-                    ? 'bg-primary text-primary-foreground ml-auto'
-                    : 'bg-muted text-foreground'
+                    ? 'bg-primary text-primary-foreground ml-auto rounded-lg px-3 py-2'
+                    : 'text-foreground'
                 }`}
               >
                 <div className="whitespace-pre-wrap break-words">
@@ -237,27 +303,10 @@ export function CommandChat({ userMessage, onClose }: CommandChatProps) {
           ))}
         </AnimatePresence>
         
-        {isLoading && messages.length === 1 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-start gap-3"
-          >
-            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <Bot className="w-3 h-3 text-primary" />
-            </div>
-            <div className="bg-muted rounded-lg px-3 py-2 text-sm">
-              <div className="flex items-center gap-2">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                <span className="text-muted-foreground">Thinking...</span>
-              </div>
-            </div>
-          </motion.div>
-        )}
       </div>
       
       {/* Message Input */}
-      <div className="border-t bg-background p-3">
+      <div className="border-t p-3">
         <div className="flex items-center gap-2">
           <input
             ref={inputRef}
@@ -267,7 +316,8 @@ export function CommandChat({ userMessage, onClose }: CommandChatProps) {
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
             disabled={isSending}
-            className="flex-1 px-3 py-2 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:opacity-50"
+            className="flex-1 px-3 py-2 bg-transparent border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:opacity-50"
+            autoFocus
           />
           <button
             onClick={handleSendMessage}
