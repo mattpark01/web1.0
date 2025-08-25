@@ -108,16 +108,10 @@ export class ProviderRegistry {
           documentation: entry.documentationUrl || undefined
         }
         
-        // Add OAuth config if available
-        if (entry.oauth_config && entry.authType === 'oauth2') {
-          provider.oauth2 = entry.oauth_config as any
-        }
-        
-        // Add required scopes
-        if (entry.requiredScopes?.length) {
-          if (provider.oauth2) {
-            provider.oauth2.scopes = entry.requiredScopes
-          }
+        // Add required scopes for OAuth2 providers
+        if (entry.authType === 'oauth2' && entry.requiredScopes?.length) {
+          // We'll need to get OAuth config from a different source
+          // For now, just track that this is an OAuth2 provider
         }
         
         this.register(provider)

@@ -184,7 +184,7 @@ export default function AIAgentPage() {
   const renderAgentCard = (agent: AIAgent) => {
     const status = getAgentStatus(agent)
     const statusInfo = statusConfig[status as keyof typeof statusConfig]
-    const Icon = agentIcons[agent.agent_id] || Bot
+    const Icon = agentIcons[agent.agentId] || Bot
     
     return (
       <div
@@ -202,7 +202,7 @@ export default function AIAgentPage() {
             </div>
             <div>
               <h3 className="font-medium">{agent.name}</h3>
-              <p className="text-xs text-muted-foreground">{agent.agent_id}</p>
+              <p className="text-xs text-muted-foreground">{agent.agentId}</p>
             </div>
           </div>
           <div className={cn(
@@ -211,7 +211,7 @@ export default function AIAgentPage() {
           )}>
             <statusInfo.icon className={cn(
               "h-3.5 w-3.5",
-              statusInfo.animate && "animate-spin"
+              'animate' in statusInfo && statusInfo.animate && "animate-spin"
             )} />
             <span>{statusInfo.label}</span>
           </div>

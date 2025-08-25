@@ -307,7 +307,7 @@ export class ConnectionManager {
     }
     
     // Get provider from catalog instead of hardcoded enum
-    const catalogEntry = await prisma.integrationCatalog.findUnique({
+    const catalogEntry = await prisma.integrationCatalog.findFirst({
       where: { provider: providerId }
     })
     
@@ -384,7 +384,7 @@ export class ConnectionManager {
     providerId: string
   ): Promise<ConnectionCredentials | null> {
     // Get provider from catalog
-    const catalogEntry = await prisma.integrationCatalog.findUnique({
+    const catalogEntry = await prisma.integrationCatalog.findFirst({
       where: { provider: providerId }
     })
     
