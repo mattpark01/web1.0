@@ -48,12 +48,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (res.ok) {
         const data = await res.json()
         setUser(data.user)
+        
+        // Fetch and store the user's API key
+        const apiKeyRes = await fetch('/api/auth/api-key', {
+          credentials: 'include',
+        })
+        
+        if (apiKeyRes.ok) {
+          const apiKeyData = await apiKeyRes.json()
+          if (apiKeyData.apiKey) {
+            localStorage.setItem('spatio_api_key', apiKeyData.apiKey)
+          }
+        }
       } else {
         setUser(null)
+        localStorage.removeItem('spatio_api_key')
       }
     } catch (error) {
       console.error('Auth check failed:', error)
       setUser(null)
+      localStorage.removeItem('spatio_api_key')
     } finally {
       setIsLoading(false)
     }
@@ -76,6 +90,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     setUser(data.user)
+    
+    // Fetch and store the user's API key
+    const apiKeyRes = await fetch('/api/auth/api-key', {
+      credentials: 'include',
+    })
+    
+    if (apiKeyRes.ok) {
+      const apiKeyData = await apiKeyRes.json()
+      if (apiKeyData.apiKey) {
+        localStorage.setItem('spatio_api_key', apiKeyData.apiKey)
+      }
+    }
+    
     router.push('/')
     router.refresh()
     return true
@@ -114,6 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     setUser(null)
+    localStorage.removeItem('spatio_api_key')
     router.push('/signin')
     router.refresh()
   }

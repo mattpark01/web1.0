@@ -65,6 +65,15 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Generate SPATIO API key for the user
+    const apiKey = `spatio_${crypto.randomBytes(32).toString('hex')}`;
+    
+    // Store the API key in the spatio_api_keys table
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO spatio_api_keys (api_key, user_id, name, created_at, is_active)
+      VALUES ($1, $2, $3, NOW(), true)
+    `, apiKey, user.id, 'Default API Key');
+
     // Create session
     const sessionId = crypto.randomUUID();
     await prisma.user.update({
