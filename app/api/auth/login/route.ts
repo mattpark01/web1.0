@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { z } from 'zod';
 
 const prisma = new PrismaClient();
@@ -45,6 +46,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
+      );
+    }
+
+    // Check if email is verified
+    if (!user.emailVerified) {
+      return NextResponse.json(
+        { 
+          error: 'Email not verified', 
+          message: 'Please verify your email before signing in. Check your email for a verification link.' 
+        },
+        { status: 403 }
       );
     }
 

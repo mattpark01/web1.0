@@ -1,0 +1,85 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # Allow manual trigger
+
+env:
+  PROJECT_ID: kinetic-road-425815-k1
+  SERVICE_NAME: web1-production
+  REGION: us-central1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+          
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        
+      - name: Generate Prisma Client
+        run: pnpm prisma generate
+        
+      - name: Build application
+        run: pnpm build
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        
+      - name: Configure Docker
+        run: gcloud auth configure-docker
+        
+      - name: Build Docker image
+        run: |
+          docker build -t gcr.io/$PROJECT_ID/$SERVICE_NAME:${{ github.sha }} .
+          docker build -t gcr.io/$PROJECT_ID/$SERVICE_NAME:latest .
+          
+      - name: Push Docker image
+        run: |
+          docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:${{ github.sha }}
+          docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:latest
+          
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy $SERVICE_NAME \
+            --image gcr.io/$PROJECT_ID/$SERVICE_NAME:${{ github.sha }} \
+            --platform managed \
+            --region $REGION \
+            --allow-unauthenticated \
+            --set-env-vars="NODE_ENV=production" \
+            --set-env-vars="DATABASE_URL=${{ secrets.DATABASE_URL }}" \
+            --set-env-vars="GOOGLE_CLIENT_ID=${{ secrets.PROD_GOOGLE_CLIENT_ID }}" \
+            --set-env-vars="GOOGLE_CLIENT_SECRET=${{ secrets.PROD_GOOGLE_CLIENT_SECRET }}" \
+            --set-env-vars="RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}" \
+            --set-env-vars="FROM_EMAIL=${{ secrets.FROM_EMAIL }}" \
+            --set-env-vars="APP_URL=https://app.spatiolabs.org" \
+            --min-instances=1 \
+            --max-instances=100 \
+            --memory=1Gi \
+            --cpu=1
+            
+      - name: Verify deployment
+        run: |
+          echo "Deployment completed successfully!"
+          echo "Service URL: https://app.spatiolabs.org"

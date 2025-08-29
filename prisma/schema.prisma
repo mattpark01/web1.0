@@ -8,7 +8,7 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  // directUrl = env("DIRECT_URL")
 }
 
 // ==========================================
@@ -70,6 +70,7 @@ model User {
   llmRequests                                     LLMRequest[]
   brokerageConnections                            BrokerageConnection[]
   web3Wallets                                     Web3WalletConnection[]
+  oauthAccounts                                   OAuthAccount[]
   
   @@index([email])
   @@index([tier])
@@ -88,6 +89,56 @@ enum SubscriptionStatus {
   CANCELLED
   PAST_DUE
   TRIALING
+}
+
+// ==========================================
+// OAUTH ACCOUNTS MODEL
+// ==========================================
+// Stores OAuth provider accounts linked to users
+// Supports multiple providers per user
+
+model OAuthAccount {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  provider          OAuthProvider // google, github, etc.
+  providerAccountId String        // The account ID from the provider (e.g., Google's sub)
+  
+  // OAuth tokens (encrypted in production)
+  accessToken       String?  @db.Text
+  refreshToken      String?  @db.Text
+  expiresAt         DateTime?      // Token expiration
+  tokenType         String?        // Usually "Bearer"
+  scope             String?        // Granted scopes
+  idToken           String?  @db.Text // For providers that return ID tokens
+  
+  // Profile data from provider
+  email             String?        // Email from provider (might differ from user.email)
+  name              String?        // Display name from provider
+  picture           String?        // Profile picture URL
+  
+  // Account status
+  isActive          Boolean  @default(true)
+  isPrimary         Boolean  @default(false) // Primary auth method for the user
+  
+  // Timestamps
+  linkedAt          DateTime @default(now())
+  lastUsedAt        DateTime?
+  updatedAt         DateTime @updatedAt
+  
+  @@unique([provider, providerAccountId])
+  @@unique([userId, provider]) // One account per provider per user
+  @@index([userId])
+  @@index([provider])
+}
+
+enum OAuthProvider {
+  GOOGLE
+  GITHUB
+  GITLAB
+  MICROSOFT
+  APPLE
 }
 
 // ==========================================
@@ -1400,4 +1451,18 @@ enum TaskStatus {
   COMPLETED
   FAILED
   CANCELLED
+}
+
+// ==========================================
+// EMAIL VERIFICATION
+// ==========================================
+
+model VerificationToken {
+  id         String   @id @default(cuid())
+  identifier String   // email address
+  token      String   @unique
+  expires    DateTime
+  createdAt  DateTime @default(now())
+
+  @@unique([identifier, token])
 }

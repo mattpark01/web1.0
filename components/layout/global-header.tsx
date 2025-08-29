@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +12,8 @@ import {
   Moon,
   Settings,
   Menu,
+  LogOut,
+  UserCircle,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -19,7 +21,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/contexts/auth-context";
+import { toast } from "sonner";
 
 // Types
 type AppPage =
@@ -73,8 +78,20 @@ interface GlobalHeaderProps {
 
 export function GlobalHeader({ onToggleFocusMode }: GlobalHeaderProps = {}) {
   const pathname = usePathname();
+  const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const { user, logout } = useAuth();
   const title = getPageTitle(pathname);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success("Logged out successfully");
+      router.push("/signin");
+    } catch (error) {
+      toast.error("Failed to logout. Please try again.");
+    }
+  };
 
   return (
     <header className="flex h-12 items-center justify-between border-b bg-background px-4">
@@ -111,9 +128,53 @@ export function GlobalHeader({ onToggleFocusMode }: GlobalHeaderProps = {}) {
           <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           <span className="sr-only">Toggle theme</span>
         </Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8">
-          <User className="h-4 w-4" />
-        </Button>
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <User className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            {user && (
+              <>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      {user.name || user.firstName || "User"}
+                    </p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+              </>
+            )}
+            <DropdownMenuItem 
+              onClick={() => router.push("/settings")}
+              className="cursor-pointer"
+            >
+              <UserCircle className="mr-2 h-4 w-4" />
+              <span>Profile</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => router.push("/settings")}
+              className="cursor-pointer"
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Settings</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={handleLogout}
+              className="cursor-pointer text-red-600 dark:text-red-400"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Log out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

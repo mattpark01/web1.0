@@ -20,7 +20,7 @@ This command helps you add a new third-party integration to the SpatioLabs platf
 /add-new-integration sendgrid api_key email
 /add-new-integration jira oauth2 task
 ```
-
+h
 ## What This Command Does
 
 1. **Creates Provider Directory Structure**

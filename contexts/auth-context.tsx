@@ -22,6 +22,8 @@ interface AuthContextType {
   register: (userData: RegisterData) => Promise<void>
   logout: () => Promise<void>
   checkAuth: () => Promise<void>
+  resendVerification: (email: string) => Promise<void>
+  linkGoogleAccount: (password: string, linkingData: any) => Promise<void>
 }
 
 interface RegisterData {
@@ -150,6 +152,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth()
   }, [])
 
+  const resendVerification = async (email: string) => {
+    const res = await fetch('/api/auth/resend-verification', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    })
+
+    const data = await res.json()
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to resend verification email')
+    }
+  }
+
+  const linkGoogleAccount = async (password: string, linkingData: any) => {
+    const res = await fetch('/api/auth/link-account', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ password, linkingData }),
+      credentials: 'include',
+    })
+
+    const data = await res.json()
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to link Google account')
+    }
+
+    // Refresh user data after linking
+    await checkAuth()
+  }
+
   const value = {
     user,
     isLoading,
@@ -157,6 +195,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     register,
     logout,
     checkAuth,
+    resendVerification,
+    linkGoogleAccount,
   }
 
   return (

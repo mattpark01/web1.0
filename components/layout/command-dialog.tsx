@@ -4,6 +4,7 @@ import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useAuth } from '@/contexts/auth-context';
 import { motion, useMotionValue, useSpring } from "framer-motion";
 import {
   CommandDialog,
@@ -200,17 +201,19 @@ const createSystemSettings = (
 ];
 
 // Helper functions
-const getGreeting = (): string => {
+const getGreeting = (firstName?: string): string => {
   const hour = new Date().getHours();
+  const name = firstName || "";
+  const greeting = name ? `, ${name}` : "";
   
   if (hour >= 5 && hour < 12) {
-    return "Good morning, Matthew";
+    return `Good morning${greeting}`;
   } else if (hour >= 12 && hour < 17) {
-    return "Good afternoon, Matthew";
+    return `Good afternoon${greeting}`;
   } else if (hour >= 17 && hour < 21) {
-    return "Good evening, Matthew";
+    return `Good evening${greeting}`;
   } else {
-    return "Good night, Matthew";
+    return `Good night${greeting}`;
   }
 };
 
@@ -960,6 +963,7 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
   const pathname = usePathname();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const { user } = useAuth();
   const { getAllSections, getAllViewModes, getAllCommands } = useCommandRegistry();
 
   const {
@@ -998,7 +1002,7 @@ export function CommandDialogWrapper({ onToggleFocusMode }: CommandDialogWrapper
     if (chatMode && !chatMessage) {
       return "Ask me anything...";
     } else if (isSlashCommand) {
-      return getGreeting();
+      return getGreeting(user?.firstName);
     } else if (isBackslashCommand) {
       return "Search Global Settings...";
     }

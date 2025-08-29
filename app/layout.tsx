@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 import { CommandRegistryProvider } from "@/contexts/command-registry";
 import { AuthProvider } from "@/contexts/auth-context";
 import { SettingsProvider } from "@/contexts/settings-context";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -41,6 +42,7 @@ export default function RootLayout({
             <SettingsProvider>
               <CommandRegistryProvider>
                 {children}
+                <Toaster />
               </CommandRegistryProvider>
             </SettingsProvider>
           </AuthProvider>
