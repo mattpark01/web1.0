@@ -38,6 +38,7 @@ jobs:
         run: pnpm build
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CONNECTION_ENCRYPTION_KEY: ${{ secrets.CONNECTION_ENCRYPTION_KEY }}
           
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v1
@@ -73,6 +74,7 @@ jobs:
             --set-env-vars="GOOGLE_CLIENT_SECRET=${{ secrets.PROD_GOOGLE_CLIENT_SECRET }}" \
             --set-env-vars="RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}" \
             --set-env-vars="FROM_EMAIL=${{ secrets.FROM_EMAIL }}" \
+            --set-env-vars="CONNECTION_ENCRYPTION_KEY=${{ secrets.CONNECTION_ENCRYPTION_KEY }}" \
             --set-env-vars="APP_URL=https://app.spatiolabs.org" \
             --min-instances=1 \
             --max-instances=100 \
