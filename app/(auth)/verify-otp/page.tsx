@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast"
 import { ArrowLeft, Mail } from 'lucide-react'
 import Link from 'next/link'
 
-export default function VerifyOTP() {
+function VerifyOTPContent() {
   const [code, setCode] = useState('')
   const [isVerifying, setIsVerifying] = useState(false)
   const router = useRouter()
@@ -202,5 +202,21 @@ export default function VerifyOTP() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function VerifyOTP() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-8">
+            <div className="text-center">Loading...</div>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <VerifyOTPContent />
+    </Suspense>
   )
 }
