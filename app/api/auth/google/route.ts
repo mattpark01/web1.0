@@ -36,7 +36,8 @@ export async function GET(request: NextRequest) {
     // Check if Google OAuth is configured
     if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
       console.error('[Google OAuth] Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET')
-      return NextResponse.redirect('/signin?error=oauth_not_configured')
+      const baseUrl = getBaseUrl(request)
+      return NextResponse.redirect(`${baseUrl}/signin?error=oauth_not_configured`)
     }
     
     const client = getOAuthClient(request)
@@ -77,6 +78,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(authorizeUrl)
   } catch (error) {
     console.error('OAuth initialization error:', error)
-    return NextResponse.redirect('/signin?error=oauth_init_failed')
+    const baseUrl = getBaseUrl(request)
+    return NextResponse.redirect(`${baseUrl}/signin?error=oauth_init_failed`)
   }
 }
