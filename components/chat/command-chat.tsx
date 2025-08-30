@@ -96,24 +96,10 @@ export function CommandChat({ initialMessage, messages, onMessagesChange, onClos
       onMessagesChange(prev => [...prev, assistantMsg]);
       setIsLoading(false);
       
-      // Use the /api/chat endpoint directly like the TUI does
-      // Automatically detect dev vs prod environment
-      const isDevelopment = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
-      const baseUrl = process.env.NEXT_PUBLIC_AGENT_RUNTIME_URL || 
-                     (isDevelopment ? 'http://localhost:8080' : 'https://agent-runtime-565753126849.us-east1.run.app');
-      
-      // Auto-set development API key if needed
-      if (isDevelopment && process.env.NEXT_PUBLIC_DEV_SPATIO_API_KEY && !localStorage.getItem('spatio_api_key')) {
-        localStorage.setItem('spatio_api_key', process.env.NEXT_PUBLIC_DEV_SPATIO_API_KEY);
-        console.log('Auto-set development API key from environment');
-      }
-      
+      // Use the local API proxy route
       const apiKey = typeof window !== 'undefined' ? localStorage.getItem('spatio_api_key') : null;
       
-      console.log('Sending chat request to:', `${baseUrl}/api/chat`);
-      console.log('Using API key:', apiKey ? `${apiKey.substring(0, 20)}...` : 'none');
-      
-      const response = await fetch(`${baseUrl}/api/chat`, {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -195,14 +181,11 @@ export function CommandChat({ initialMessage, messages, onMessagesChange, onClos
       
       // Show error message instead of mock
       const assistantId = (Date.now() + 1).toString();
-      const isDevelopment = process.env.NODE_ENV === 'development' || (typeof window !== 'undefined' && window.location.hostname === 'localhost');
-      const errorUrl = process.env.NEXT_PUBLIC_AGENT_RUNTIME_URL || 
-                      (isDevelopment ? 'http://localhost:8080' : 'https://agent-runtime-565753126849.us-east1.run.app');
       
       const assistantMsg: ChatMessage = {
         id: assistantId,
         type: 'assistant',
-        content: `Failed to connect to agent runtime. Please ensure the service is running on ${errorUrl}`,
+        content: `Failed to connect to agent service. Please try again later.`,
         timestamp: new Date(),
         isStreaming: false,
       };

@@ -67,20 +67,17 @@ export interface AgentStreamUpdate {
   timestamp: string;
 }
 
-// Automatically use local server in development, Cloud Run in production
+// Use relative URLs for client-side calls (proxied through Next.js API)
+// This ensures the backend URL is never exposed to the client
 const getAgentRuntimeUrl = () => {
-  // If explicitly set, use that
-  if (process.env.NEXT_PUBLIC_AGENT_RUNTIME_URL) {
-    return process.env.NEXT_PUBLIC_AGENT_RUNTIME_URL;
+  // For client-side, always use relative URLs (proxied)
+  if (typeof window !== 'undefined') {
+    return '';  // Empty string means relative URLs
   }
   
-  // Otherwise, detect based on environment
-  const isDevelopment = process.env.NODE_ENV === 'development' || 
-                        (typeof window !== 'undefined' && window.location.hostname === 'localhost');
-  
-  return isDevelopment 
-    ? 'http://localhost:8080'
-    : 'https://agent-runtime-565753126849.us-east1.run.app';
+  // For server-side (if this is ever used server-side)
+  return process.env.AGENT_RUNTIME_URL || 
+         (process.env.NODE_ENV === 'development' ? 'http://localhost:8081' : 'https://agent-runtime-565753126849.us-east1.run.app');
 };
 
 const AGENT_RUNTIME_BASE_URL = getAgentRuntimeUrl();

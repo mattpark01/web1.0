@@ -3,31 +3,14 @@ const nextConfig = {
   // Enable React strict mode for better development experience
   reactStrictMode: true,
 
-  // Proxy API requests to avoid CORS in development
+  // No rewrites needed - we use API proxy routes now
   async rewrites() {
-    // Only proxy in development
-    if (process.env.NODE_ENV !== 'development') {
-      return [];
-    }
-
-    // Check if we should use proxy (when no local agent runtime URL is set)
-    const useProxy = !process.env.NEXT_PUBLIC_AGENT_RUNTIME_URL;
-    
-    if (!useProxy) {
-      return [];
-    }
-
-    return [
-      {
-        source: '/api/agent-runtime/:path*',
-        destination: 'https://agent-runtime-565753126849.us-east1.run.app/:path*',
-      },
-    ];
+    return [];
   },
 
   // Configure allowed domains for images, if needed
   images: {
-    domains: ['agent-runtime-565753126849.us-east1.run.app'],
+    domains: [],
   },
 
   // Webpack configuration
