@@ -21,7 +21,12 @@ export async function POST(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
     if (authHeader) {
       headers['Authorization'] = authHeader;
+      console.log('[Chat Proxy] Forwarding auth header:', authHeader.substring(0, 20) + '...');
+    } else {
+      console.log('[Chat Proxy] No auth header found in request');
     }
+    
+    console.log('[Chat Proxy] Forwarding to:', `${AGENT_RUNTIME_URL}/api/chat`);
     
     // Forward the request to agent-runtime
     const response = await fetch(`${AGENT_RUNTIME_URL}/api/chat`, {
@@ -30,8 +35,18 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(body),
     });
     
+    console.log('[Chat Proxy] Response status:', response.status);
+    
     // If it's not a streaming response, just return the JSON
     if (!body.stream) {
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Chat Proxy] Error response:', errorText);
+        return NextResponse.json(
+          { error: errorText || `Request failed with status ${response.status}` },
+          { status: response.status }
+        );
+      }
       const data = await response.json();
       return NextResponse.json(data, { status: response.status });
     }

@@ -38,6 +38,9 @@ async function proxyRequest(
     const authHeader = request.headers.get('authorization');
     if (authHeader) {
       headers['Authorization'] = authHeader;
+      console.log('[Execution Proxy] Forwarding auth header to', url);
+    } else {
+      console.log('[Execution Proxy] No auth header found for', url);
     }
     
     // Prepare fetch options
@@ -58,9 +61,21 @@ async function proxyRequest(
     // Make the request
     const response = await fetch(url, fetchOptions);
     
+    console.log('[Execution Proxy] Response status:', response.status);
+    
     // Check if this is a streaming response
     if (path.includes('stream')) {
       return handleStreamingResponse(response);
+    }
+    
+    // Handle error responses
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Execution Proxy] Error response:', errorText);
+      return NextResponse.json(
+        { error: errorText || `Request failed with status ${response.status}` },
+        { status: response.status }
+      );
     }
     
     // Forward the response

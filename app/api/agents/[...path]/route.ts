@@ -54,6 +54,9 @@ async function proxyRequest(
     const authHeader = request.headers.get('authorization');
     if (authHeader) {
       headers['Authorization'] = authHeader;
+      console.log('[Agent Proxy] Forwarding auth header to', url);
+    } else {
+      console.log('[Agent Proxy] No auth header found for', url);
     }
     
     // Prepare fetch options
@@ -78,6 +81,18 @@ async function proxyRequest(
     
     // Make the request
     const response = await fetch(url, fetchOptions);
+    
+    console.log('[Agent Proxy] Response status:', response.status);
+    
+    // Handle error responses
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Agent Proxy] Error response:', errorText);
+      return NextResponse.json(
+        { error: errorText || `Request failed with status ${response.status}` },
+        { status: response.status }
+      );
+    }
     
     // Forward the response
     const data = await response.json();
