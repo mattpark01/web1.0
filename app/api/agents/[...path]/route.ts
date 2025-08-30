@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getUserApiKey } from '@/lib/auth-server';
 
 // Proxy route for all agent-runtime agent endpoints
 export async function GET(
@@ -39,6 +40,15 @@ async function proxyRequest(
   method: string
 ) {
   try {
+    // Get the user's internal API key from session
+    const internalApiKey = await getUserApiKey(request);
+    
+    if (!internalApiKey) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
     // Get the agent runtime URL from environment variable
     const AGENT_RUNTIME_URL = process.env.AGENT_RUNTIME_URL || 
       (process.env.NODE_ENV === 'development' 
@@ -49,15 +59,12 @@ async function proxyRequest(
     const path = pathSegments.join('/');
     const url = `${AGENT_RUNTIME_URL}/api/agents/${path}`;
     
-    // Forward headers
-    const headers: HeadersInit = {};
-    const authHeader = request.headers.get('authorization');
-    if (authHeader) {
-      headers['Authorization'] = authHeader;
-      console.log('[Agent Proxy] Forwarding auth header to', url);
-    } else {
-      console.log('[Agent Proxy] No auth header found for', url);
-    }
+    // Use the internal API key for agent-runtime authentication
+    const headers: HeadersInit = {
+      'Authorization': `Bearer ${internalApiKey}`,
+    };
+    
+    console.log('[Agent Proxy] Using internal API key for', url);
     
     // Prepare fetch options
     const fetchOptions: RequestInit = {

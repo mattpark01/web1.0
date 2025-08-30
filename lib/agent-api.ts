@@ -84,47 +84,17 @@ const AGENT_RUNTIME_BASE_URL = getAgentRuntimeUrl();
 
 export class AgentAPI {
   private baseUrl: string;
-  private apiKey?: string;
 
   constructor(baseUrl: string = AGENT_RUNTIME_BASE_URL) {
     this.baseUrl = baseUrl;
-    // Get API key from localStorage
-    if (typeof window !== 'undefined') {
-      // In development, auto-set the API key from env if not already set
-      const isDevelopment = process.env.NODE_ENV === 'development';
-      const devApiKey = process.env.NEXT_PUBLIC_DEV_SPATIO_API_KEY;
-      
-      if (isDevelopment && devApiKey && !localStorage.getItem('spatio_api_key')) {
-        localStorage.setItem('spatio_api_key', devApiKey);
-        console.log('Auto-set development API key from environment');
-      }
-      
-      this.apiKey = localStorage.getItem('spatio_api_key') || undefined;
-    }
-  }
-
-  setApiKey(apiKey: string) {
-    this.apiKey = apiKey;
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('spatio_api_key', apiKey);
-    }
-  }
-
-  clearApiKey() {
-    this.apiKey = undefined;
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('spatio_api_key');
-    }
   }
 
   private getHeaders(): HeadersInit {
-    const headers: HeadersInit = {
+    // Authentication is handled server-side via session cookies
+    // No need for client-side API keys
+    return {
       'Content-Type': 'application/json',
     };
-    if (this.apiKey) {
-      headers['Authorization'] = `Bearer ${this.apiKey}`;
-    }
-    return headers;
   }
 
   async getAgents(): Promise<Agent[]> {

@@ -96,14 +96,11 @@ export function CommandChat({ initialMessage, messages, onMessagesChange, onClos
       onMessagesChange(prev => [...prev, assistantMsg]);
       setIsLoading(false);
       
-      // Use the local API proxy route
-      const apiKey = typeof window !== 'undefined' ? localStorage.getItem('spatio_api_key') : null;
-      
+      // Use the local API proxy route (authentication handled server-side)
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(apiKey && { 'Authorization': `Bearer ${apiKey}` })
         },
         body: JSON.stringify({
           message: message,

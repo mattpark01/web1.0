@@ -76,6 +76,30 @@ model User {
   @@index([tier])
 }
 
+// ==========================================
+// SPATIO API KEYS MODEL
+// ==========================================
+// Internal API keys for agent-runtime authentication
+// Auto-generated for each user, never exposed to client
+
+model SpatioApiKey {
+  id           String    @id @default(uuid()) @db.Uuid
+  apiKey       String    @unique @map("api_key") @db.VarChar(128)
+  userId       String    @map("user_id") @db.VarChar(255)
+  name         String?   @db.VarChar(255)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  lastUsedAt   DateTime? @map("last_used_at")
+  isActive     Boolean   @default(true) @map("is_active")
+  
+  // Note: No foreign key constraint to User table in existing schema
+  // This is because agent-runtime owns this table
+  
+  @@index([apiKey], name: "idx_spatio_api_keys_api_key")
+  @@index([userId], name: "idx_spatio_api_keys_user_id")
+  @@index([isActive], name: "idx_spatio_api_keys_active")
+  @@map("spatio_api_keys")
+}
+
 // New enums for subscription
 enum UserTier {
   FREE
