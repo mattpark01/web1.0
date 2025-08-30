@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Link2, AlertCircle } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 
-export default function LinkAccountPage() {
+function LinkAccountContent() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -169,5 +169,21 @@ export default function LinkAccountPage() {
         </form>
       </Card>
     </div>
+  )
+}
+
+export default function LinkAccountPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-black p-4">
+        <Card className="w-full max-w-md border-neutral-800 bg-black">
+          <CardContent className="p-8">
+            <div className="text-center text-white">Loading...</div>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <LinkAccountContent />
+    </Suspense>
   )
 }
