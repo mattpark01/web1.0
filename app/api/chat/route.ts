@@ -9,8 +9,13 @@ export async function POST(request: NextRequest) {
     const internalApiKey = await getUserApiKey(request);
     
     if (!internalApiKey) {
+      console.error('[Chat Proxy] No API key found for user session');
+      // Check if there's a session at all
+      const sessionId = request.cookies.get('sessionId')?.value;
+      console.error('[Chat Proxy] Session ID:', sessionId ? 'Present' : 'Missing');
+      
       return NextResponse.json(
-        { error: 'Authentication required' },
+        { error: 'Authentication required. Please sign in.' },
         { status: 401 }
       );
     }

@@ -9,8 +9,11 @@ export async function getUserFromSession(request: NextRequest) {
   const sessionId = request.cookies.get('sessionId')?.value;
   
   if (!sessionId) {
+    console.log('[Auth] No sessionId cookie found');
     return null;
   }
+  
+  console.log('[Auth] Looking up user with sessionId:', sessionId.substring(0, 10) + '...');
   
   const user = await prisma.user.findUnique({
     where: { sessionId },
@@ -19,6 +22,12 @@ export async function getUserFromSession(request: NextRequest) {
       email: true,
     },
   });
+  
+  if (!user) {
+    console.log('[Auth] No user found for sessionId');
+  } else {
+    console.log('[Auth] Found user:', user.email);
+  }
   
   return user;
 }

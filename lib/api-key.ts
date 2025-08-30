@@ -15,34 +15,37 @@ export function generateApiKey(): string {
  * This is used internally by the proxy routes
  */
 export async function getOrCreateUserApiKey(userId: string): Promise<string> {
-  // Check if user already has an active API key
-  const existingKey = await prisma.spatioApiKey.findFirst({
-    where: {
-      userId,
-      isActive: true,
-    },
-  });
+  console.log('[API Key] Getting or creating key for user:', userId);
+  
+  // Check if user already has an active API key using raw SQL
+  const existingKeys = await prisma.$queryRaw<Array<{api_key: string, id: string}>>`
+    SELECT id, api_key FROM spatio_api_keys 
+    WHERE user_id = ${userId} AND is_active = true
+    LIMIT 1
+  `;
 
-  if (existingKey) {
+  if (existingKeys && existingKeys.length > 0) {
+    console.log('[API Key] Found existing key for user');
     // Update last used timestamp
-    await prisma.spatioApiKey.update({
-      where: { id: existingKey.id },
-      data: { lastUsedAt: new Date() },
-    });
-    return existingKey.apiKey;
+    await prisma.$executeRaw`
+      UPDATE spatio_api_keys 
+      SET last_used_at = NOW() 
+      WHERE id = ${existingKeys[0].id}::uuid
+    `;
+    return existingKeys[0].api_key;
   }
 
+  console.log('[API Key] No existing key, creating new one');
+  
   // Generate a new API key for the user
   const apiKey = generateApiKey();
   
-  await prisma.spatioApiKey.create({
-    data: {
-      userId,
-      apiKey,
-      name: 'Auto-generated Internal Key',
-    },
-  });
+  await prisma.$executeRaw`
+    INSERT INTO spatio_api_keys (api_key, user_id, name, created_at, is_active)
+    VALUES (${apiKey}, ${userId}, 'Auto-generated Internal Key', NOW(), true)
+  `;
 
+  console.log('[API Key] Created new API key for user');
   return apiKey;
 }
 
@@ -50,20 +53,22 @@ export async function getOrCreateUserApiKey(userId: string): Promise<string> {
  * Validates an API key and returns the associated user ID
  */
 export async function validateApiKey(apiKey: string): Promise<string | null> {
-  const key = await prisma.spatioApiKey.findUnique({
-    where: { apiKey },
-    select: { userId: true, isActive: true },
-  });
+  const keys = await prisma.$queryRaw<Array<{user_id: string, is_active: boolean}>>`
+    SELECT user_id, is_active FROM spatio_api_keys 
+    WHERE api_key = ${apiKey}
+    LIMIT 1
+  `;
 
-  if (!key || !key.isActive) {
+  if (!keys || keys.length === 0 || !keys[0].is_active) {
     return null;
   }
 
   // Update last used timestamp
-  await prisma.spatioApiKey.update({
-    where: { apiKey },
-    data: { lastUsedAt: new Date() },
-  });
+  await prisma.$executeRaw`
+    UPDATE spatio_api_keys 
+    SET last_used_at = NOW() 
+    WHERE api_key = ${apiKey}
+  `;
 
-  return key.userId;
+  return keys[0].user_id;
 }
