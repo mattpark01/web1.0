@@ -3,15 +3,17 @@ import { NextRequest, NextResponse } from 'next/server';
 // Proxy route for all agent-runtime execution endpoints
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  context: { params: Promise<{ path: string[] }> }
 ) {
+  const params = await context.params;
   return proxyRequest(request, params.path, 'GET');
 }
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  context: { params: Promise<{ path: string[] }> }
 ) {
+  const params = await context.params;
   return proxyRequest(request, params.path, 'POST');
 }
 
