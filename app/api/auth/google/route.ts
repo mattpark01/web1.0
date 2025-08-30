@@ -33,7 +33,18 @@ const getOAuthClient = (request: NextRequest) => {
 
 export async function GET(request: NextRequest) {
   try {
+    // Check if Google OAuth is configured
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      console.error('[Google OAuth] Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET')
+      return NextResponse.redirect('/signin?error=oauth_not_configured')
+    }
+    
     const client = getOAuthClient(request)
+    const baseUrl = getBaseUrl(request)
+    
+    console.log('[Google OAuth] Client ID:', process.env.GOOGLE_CLIENT_ID?.substring(0, 20) + '...')
+    console.log('[Google OAuth] Base URL:', baseUrl)
+    console.log('[Google OAuth] Redirect URI:', `${baseUrl}/api/auth/google/callback`)
     
     // Generate a random state for CSRF protection
     const state = crypto.randomBytes(32).toString('hex')
@@ -51,7 +62,7 @@ export async function GET(request: NextRequest) {
       timestamp: Date.now()
     }
     
-    // Generate the authorization URL
+    // Generate the authorization URL with explicit redirect_uri
     const authorizeUrl = client.generateAuthUrl({
       access_type: 'offline',
       scope: [
@@ -59,7 +70,8 @@ export async function GET(request: NextRequest) {
         'https://www.googleapis.com/auth/userinfo.email'
       ],
       state: Buffer.from(JSON.stringify(stateData)).toString('base64'),
-      prompt: 'select_account' // Always show account selection
+      prompt: 'select_account', // Always show account selection
+      redirect_uri: `${baseUrl}/api/auth/google/callback` // Explicitly set redirect_uri
     })
     
     return NextResponse.redirect(authorizeUrl)
